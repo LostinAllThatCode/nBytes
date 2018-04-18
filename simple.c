@@ -134,7 +134,7 @@ reset:
 		t += app.time.delta_secs;
 		size += app.mouse.wheel_delta;
 		size = MAX(size, 3);
-		if(app.keys['R'].pressed && app.keymod == MOD_Ctrl) {
+		if(app.keys['R'].pressed) {
 			buf_clear(game_balls);
 			goto reset;
 		}
@@ -160,37 +160,38 @@ reset:
 
 		update_balls(game_balls);
 
+
 		if(app.keys['D'].pressed) { debug = !debug; }
 		if(debug) {
 			rgl_draw_text2d(&font1, font_tex, 11, RGL_LEFT_ALIGN, vec2(21, 21), vec4(.4f, .4f, 0.4f, 1),
 			                "OpenGL Version: %s\nOpenGL Vendor: %s\nVSync: %s\nWindow: %ix%i %i %i %i\n"
-			                "Mouse: %i %i %i %i %i %i %i %i\n%f\n\n%s\nEntities: %i",
+			                "Mouse: %i %i %i %i %i %i %i %i\nTime: %.6f ms\n\nEntities: %i",
 			                gl_version,
 			                gl_vendor,
 			                (app.window.opengl.vsync ? "Enabled" : "Disabled"),
 			                app.window.size.x, app.window.size.y, app.window.pos.x, app.window.pos.y, app.window.focus,
-			                app.mouse.x, app.mouse.y, app.mouse.rel_x, app.mouse.rel_y, app.mouse.dx, app.mouse.dy, app.mouse.wheel, app.mouse.wheel_delta, app.time.delta_secs,
-			                "Press 'CTRL + R' to restart", buf_len(game_balls));
+			                app.mouse.x, app.mouse.y, app.mouse.rel_x, app.mouse.rel_y, app.mouse.dx, app.mouse.dy, app.mouse.wheel, app.mouse.wheel_delta, app.time.delta_secs, buf_len(game_balls));
 			rgl_draw_text2d(&font1, font_tex, 11, RGL_LEFT_ALIGN, vec2(20, 20), vec4(1, 1, 1, 1),
 			                "OpenGL Version: %s\nOpenGL Vendor: %s\nVSync: %s\nWindow: %ix%i %i %i %i\n"
-			                "Mouse: %i %i %i %i %i %i %i %i\n%f\n\n%s\nEntities: %i",
+			                "Mouse: %i %i %i %i %i %i %i %i\nTime: %.6f ms\n\nEntities: %i",
 			                gl_version,
 			                gl_vendor,
 			                (app.window.opengl.vsync ? "Enabled" : "Disabled"),
 			                app.window.size.x, app.window.size.y, app.window.pos.x, app.window.pos.y, app.window.focus,
-			                app.mouse.x, app.mouse.y, app.mouse.rel_x, app.mouse.rel_y, app.mouse.dx, app.mouse.dy, app.mouse.wheel, app.mouse.wheel_delta, app.time.delta_secs,
-			                "Press 'CTRL + R' to restart", buf_len(game_balls));
+			                app.mouse.x, app.mouse.y, app.mouse.rel_x, app.mouse.rel_y, app.mouse.dx, app.mouse.dy, app.mouse.wheel, app.mouse.wheel_delta, app.time.delta_secs, buf_len(game_balls));
 		}
-
-
 
 		float midx = app.window.size.x / 2.f;
 		float midy = app.window.size.y / 2.f;
 		blendout -= 0.005f;
-		rgl_draw_text2d(&font1, font_tex, 22, RGL_CENTERED, vec2(midx, midy - 33), vec4(1, 1, 0, blendout), "Welcome to");
-		rgl_draw_text2d(&font1, font_tex, 33, RGL_CENTERED, vec2(midx, midy), vec4(1, 1, 1, blendout), "THE USELESS GAME");
-		rgl_draw_text2d(&font1, font_tex, 11, RGL_CENTERED, vec2(midx, midy + 33), vec4(1, 0.2f, .4f, blendout), "by pimmelbingoNr10");
+		rgl_draw_text2d(&font1, font_tex, 22, RGL_CENTERED, vec2(midx, midy - 33), vec4(1, 1, 0, blendout), "nBytes");
+		rgl_draw_text2d(&font1, font_tex, 33, RGL_CENTERED, vec2(midx, midy), vec4(.1f, .4f, .8f, blendout), "THE USELESS WINDOW");
 
+		rgl_draw_text2d(&font1, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 51), vec4(1, 1, 1, 1), "Change size for new entities  |     MOUSEWHEEL UP/DOWN");
+		rgl_draw_text2d(&font1, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 41), vec4(1, 1, 1, 1), "Hold to add new entities  |                             LEFT MOUSE");
+		rgl_draw_text2d(&font1, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 31), vec4(1, 1, 1, 1), "Toggle VSYNC   |                                                      V");
+		rgl_draw_text2d(&font1, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 21), vec4(1, 1, 1, 1), "Display debug info  |                                                      D");
+		rgl_draw_text2d(&font1, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 10), vec4(1, 1, 1, 1), "Restart/Reset  |                                                      R");
 		end_scene2d();
 		nbytes_render_window();
 	}
