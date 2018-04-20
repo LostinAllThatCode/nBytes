@@ -92,7 +92,7 @@ draw_debuginfo(bool debug, int font_tex)
 #define DBG_UPDATE_INTERVAL 0.025f
 	static float dbg_update_timer = DBG_UPDATE_INTERVAL;
 	static char dbg_buffer[1024];
-	int4 dbg_draw_region = {0};
+	static int4 dbg_draw_region;
 	const static char *gl_version, *gl_vendor;
 	if(!gl_version) {
 		gl_version = glGetString(GL_VERSION);
