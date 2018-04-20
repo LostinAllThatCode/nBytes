@@ -34,10 +34,19 @@
 #endif
 
 enum {
-	MOD_None,
-	MOD_Shift,
-	MOD_Ctrl,
-	MOD_Alt
+	KEYMOD_NONE		= 0x0,
+	KEYMOD_LSHIFT 	= 0x1,
+	KEYMOD_RSHIFT 	= 0x2,
+	KEYMOD_SHIFT 	= KEYMOD_LSHIFT | KEYMOD_RSHIFT,
+	KEYMOD_LCTRL	= 0x4,
+	KEYMOD_RCTRL	= 0x8,
+	KEYMOD_CTRL 	= KEYMOD_LCTRL | KEYMOD_RCTRL,
+	KEYMOD_LALT		= 0x10,
+	KEYMOD_RALT		= 0x20,
+	KEYMOD_ALT 		= KEYMOD_LALT | KEYMOD_RALT,
+	KEYMOD_LMETA	= 0x40,
+	KEYMOD_RMETA	= 0x80,
+	KEYMOD_META 	= KEYMOD_LMETA | KEYMOD_RMETA,
 };
 
 typedef struct Keystate {
@@ -47,14 +56,14 @@ typedef struct Keystate {
 } Keystate;
 
 __forceinline void
-input_reset_keystate(Keystate *key)
+nbytes__reset_keystate(Keystate *key)
 {
 	key->pressed = 0;
 	key->released = 0;
 }
 
 __forceinline void
-input_update_keystate(Keystate *key, bool is_down)
+nbytes__update_keystate(Keystate *key, bool is_down)
 {
 	bool was_down = key->down;
 	key->down = is_down;
@@ -62,12 +71,48 @@ input_update_keystate(Keystate *key, bool is_down)
 	key->released = !is_down && was_down;
 }
 
+typedef enum EventType {
+	EVENT_NONE,
+	EVENT_KEY_DOWN,
+	EVENT_KEY_UP,
+	EVENT_MOUSE_DOWN,
+	EVENT_MOUSE_UP,
+	EVENT_MOUSE_MOVE,
+	EVENT_HOTKEY_PRESSED,
+} EventType;
+
+
+typedef struct Event {
+	EventType type;
+	union {
+		struct {
+			int vk;
+			int repeat;
+			bool down;
+		} key;
+		struct {
+			int btn;
+			bool down;
+			int2 pos;
+		} mouse;
+		struct {
+			int id;
+			int keymod;
+		} hotkey;
+	};
+} Event;
+
 typedef struct Mouse {
-	int rel_x, rel_y, dx, dy, wheel, wheel_delta;
-	int x, y;
+	int2 screen;
+	int2 relative;
+	int2 delta;
+	int wheel, wheel_delta;
+
 	struct {
-		int rel_x, rel_y, dx, dy, wheel, wheel_delta;
-		int x, y;
+		int2 screen;
+		int2 relative;
+		int2 delta;
+		int wheel, wheel_delta;
 	} prev_state;
 } Mouse;
 
@@ -87,6 +132,12 @@ typedef struct Time {
 	int msecs;
 	float secs;
 } Time;
+
+typedef struct Display {
+	int dpi;
+	int2 size;
+	int refresh_rate;
+} Display;
 
 typedef struct Window {
 	bool hidden;
@@ -137,9 +188,14 @@ typedef struct Window {
 #define NBYTES_DEFAULT_WINDOW_HEIGHT 		600
 #define NBYTES_DEFAULT_TITLE 				"nBytes"
 
-#define NBYTES_NUM_MAX_KEYS 256
+#define NBYTES_NUM_MAX_EVENTS 				512
+#define NBYTES_NUM_MAX_KEYS 				256
 typedef struct App {
 	bool quit;
+	int num_updates;
+
+	Event events[NBYTES_NUM_MAX_EVENTS];
+	int num_events;
 
 	int keymod;
 	Keystate keys[NBYTES_NUM_MAX_KEYS];
@@ -148,9 +204,9 @@ typedef struct App {
 		Create own vkeys and map them to the platform specific ones
 		Right now i just use the VK_KEYS from windows directly!
 	**/
-
 	Time time;
 	Mouse mouse;
+	Display display;
 	Window window;
 } App;
 extern App app;
@@ -178,6 +234,7 @@ nbytes_update()
 	nbytes_update_events();
 	nbytes_update_window();
 	nbytes_update_time();
+	app.num_updates++;
 	return !app.quit;
 }
 
@@ -185,7 +242,8 @@ bool
 nbytes_init()
 {
 	if(!nbytes_init_window()) { return false; }
-	nbytes_init_time();
+	if(!nbytes_init_display()) { return false; };
+	if(!nbytes_init_time()) { return false; };
 	return nbytes_update();
 }
 

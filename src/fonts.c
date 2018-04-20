@@ -85,16 +85,16 @@ str_utf8_to_unicode(const char *str, int *byte_length)
 	return u;
 }
 
-Rect
+int4
 font_get_text_bounds(BakedFont *font, int size, const char *text, size_t len)
 {
 	float dy = 0;
 	float dx = 0;
-	Rect result = {0, 0, 0, size};
 
+	int4 result = {0, 0, 0, size};
 	for(int i = 0; i < len; i++) {
 		if(text[i] == '\n') {
-			result.height += size;
+			dy += size;
 			dx = 0;
 			i++;
 			continue;
@@ -106,11 +106,12 @@ font_get_text_bounds(BakedFont *font, int size, const char *text, size_t len)
 			stbtt_aligned_quad q = {0};
 			stbtt_GetPackedQuad(character_data, font->textures[0].width, font->textures[0].height, 0, &dx, &dy, &q, 0);
 
-			if(result.width < dx) {
-				result.width = dx;
+			if(result.right < dx) {
+				result.right = dx;
 			}
 		}
 	}
+	result.bottom = dy;
 	return result;
 }
 

@@ -70,6 +70,34 @@ typedef union int2 {
 	};
 } int2;
 
+typedef union int3 {
+	struct {
+		int32_t x;
+		int32_t y;
+		int32_t z;
+	};
+	struct {
+		int32_t width;
+		int32_t height;
+		int32_t depth;
+	};
+} int3;
+
+typedef union int4 {
+	struct {
+		int32_t x;
+		int32_t y;
+		int32_t z;
+		int32_t w;
+	};
+	struct {
+		int32_t left;
+		int32_t right;
+		int32_t top;
+		int32_t bottom;
+	};
+} int4;
+
 // core functions
 void *
 xmalloc(size_t size)

@@ -70,6 +70,47 @@ rgl_draw_colored_rect2d(RetroGLAnchor origin, v2 position, v4 color, float width
 }
 
 void
+rgl_draw_filled_circle(v2 position, v4 color, float radius)
+{
+	int subdiv = MAX(radius * 4, 64);
+	if(radius <= 1.0f) {
+		rgl_draw_colored_rect2d(RGL_CENTER, position, color, radius * 2, radius * 2);
+		return;
+	}
+	//glBegin(GL_LINE_LOOP);
+	glBegin(GL_TRIANGLE_FAN);
+	glColor4f(color.r, color.g, color.b, color.a);
+	glVertex2d(position.x, position.y);
+	for(int i = 0; i <= subdiv; i++) {
+		double angle = 2 * NBYTES_PI * i / subdiv;
+		double x = position.x + radius *  cos(angle);
+		double y = position.y + radius * sin(angle);
+		glVertex2d(x, y);
+	}
+	glEnd();
+}
+
+void
+rgl_draw_circle(v2 position, v4 color, float radius)
+{
+	int subdiv = MAX(radius * 4, 64);
+	if(radius <= 1.0f) {
+		rgl_draw_colored_rect2d(RGL_CENTER, position, color, radius * 2, radius * 2);
+		return;
+	}
+	glBegin(GL_LINE_LOOP);
+	glColor4f(color.r, color.g, color.b, color.a);
+	for(int i = 0; i <= subdiv; i++) {
+		double angle = 2 * NBYTES_PI * i / subdiv;
+		double x = position.x + radius *  cos(angle);
+		double y = position.y + radius * sin(angle);
+		glVertex2d(x, y);
+	}
+	glEnd();
+}
+
+
+void
 rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align, v2 position, v4 color, const char *fmt, ...)
 {
 	char text[4096];
@@ -79,22 +120,24 @@ rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align,
 	int len = vsprintf(text, fmt, args);
 	va_end(args);
 
-	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, font_tex);
-
 	switch(align) {
 		case RGL_CENTERED: {
-			Rect rect = font_get_text_bounds(font, size, text, len);
-			position.x -= rect.width / 2.0f;
-			position.y -= rect.height / 2.0f;
+			int4 rect = font_get_text_bounds(font, size, text, len);
+			position.x -= rect.right / 2.0f;
+			position.y -= rect.bottom / 2.0f;
 		} break;
 		case RGL_RIGHT_ALIGN: {
-			Rect rect = font_get_text_bounds(font, size, text, len);
-			position.x -= rect.width;
-			position.y -= rect.height;
+			int4 rect = font_get_text_bounds(font, size, text, len);
+			position.x -= rect.right;
+			position.y -= rect.bottom;
 		} break;
 	}
 
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBindTexture(GL_TEXTURE_2D, font_tex);
+	glBegin(GL_TRIANGLES);
 	float x 	= position.x;
 	float y 	= position.y;
 	int adv_csr = 0;
@@ -106,9 +149,8 @@ rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align,
 			continue;
 		}
 
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		glBegin(GL_TRIANGLES);
+
 		int unicode = str_utf8_to_unicode(text + i, &adv_csr);
 		stbtt_packedchar *character_data = map_get(&font->glyphs, (void *) PACK_GLYPH(size, unicode));
 		if(character_data) {
@@ -143,8 +185,8 @@ rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align,
 		} else {
 			//warn("Glyph lookup failed for character '%.*s' ( unicode = 0x%04X )\n", adv_csr, cursor, unicode);
 		}
-		glEnd();
 		i += adv_csr;
 	}
+	glEnd();
 	glDisable(GL_TEXTURE_2D);
 }

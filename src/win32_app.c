@@ -1,4 +1,4 @@
-#define NBYTES_WIN32_WNDCLASS 		L"nbytes_win32_wndclass"
+#define NBYTES_WIN32_WNDCLASS 		L"nbytes__win32_wndclass"
 #define NBYTES_WIN32_MAX_TITLE_LEN 	512
 typedef struct Win32Window {
 	wchar_t title[NBYTES_WIN32_MAX_TITLE_LEN];
@@ -11,13 +11,14 @@ typedef struct Win32Window {
 	};
 } Win32Window;
 
+int win32_hotkey_id_counter = 0x1000;
 bool win32_dragging;
 Win32Window win32_window;
 HANDLE win32_main_fiber;
 HANDLE win32_msg_fiber;
 
 LRESULT CALLBACK
-nbytes_win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT result = 0;
 
@@ -35,30 +36,75 @@ nbytes_win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			rid[1].dwFlags     = 0x0;
 			rid[1].hwndTarget  = hwnd;
 			assert(RegisterRawInputDevices(rid, ARRAY_LEN(rid), sizeof(rid[0])));
-
+		} break;
+		case WM_HOTKEY : {
+			Event event = { EVENT_HOTKEY_PRESSED };
+			event.hotkey.id = wParam;
+			event.hotkey.keymod = ((lParam & 0x4) != 0) << 0 |
+			                      ((lParam & 0x2) != 0) << 1 |
+			                      ((lParam & 0x1) != 0) << 2 |
+			                      ((lParam & 0x8) != 0) << 3;
+			app.events[app.num_events++] = event;
 		} break;
 		case WM_ACTIVATE: {
 			int state = wParam & 0xffff;
 			app.window.focus = (state >= 1);
 		} break;
 		case WM_LBUTTONUP: case WM_LBUTTONDOWN: {
-			input_update_keystate(&app.keys[VK_LBUTTON], (uMsg == WM_LBUTTONDOWN));
+			Event event = { (uMsg == WM_LBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
+			event.mouse.btn = VK_LBUTTON;
+			event.mouse.down = (uMsg == WM_LBUTTONDOWN);
+			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			app.events[app.num_events++] = event;
+
+			nbytes__update_keystate(&app.keys[VK_LBUTTON], (uMsg == WM_LBUTTONDOWN));
 		} break;
 		case WM_MBUTTONUP: case WM_MBUTTONDOWN: {
-			input_update_keystate(&app.keys[VK_MBUTTON], (uMsg == WM_MBUTTONDOWN));
+			Event event = { (uMsg == WM_MBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
+			event.mouse.btn = VK_MBUTTON;
+			event.mouse.down = (uMsg == WM_MBUTTONDOWN);
+			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			app.events[app.num_events++] = event;
+
+			nbytes__update_keystate(&app.keys[VK_MBUTTON], (uMsg == WM_MBUTTONDOWN));
 		} break;
 		case WM_RBUTTONUP: case WM_RBUTTONDOWN: {
-			input_update_keystate(&app.keys[VK_RBUTTON], (uMsg == WM_RBUTTONDOWN));
+			Event event = { (uMsg == WM_RBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
+			event.mouse.btn = VK_RBUTTON;
+			event.mouse.down = (uMsg == WM_RBUTTONDOWN);
+			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			app.events[app.num_events++] = event;
+
+			nbytes__update_keystate(&app.keys[VK_RBUTTON], (uMsg == WM_RBUTTONDOWN));
 		} break;
 		case WM_XBUTTONUP: case WM_XBUTTONDOWN:	{
-			input_update_keystate(&app.keys[(wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2)], (uMsg == WM_XBUTTONDOWN));
+			Event event = { (uMsg == WM_XBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
+			event.mouse.btn = (wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2);
+			event.mouse.down = (uMsg == WM_XBUTTONDOWN);
+			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			app.events[app.num_events++] = event;
+
+			nbytes__update_keystate(&app.keys[(wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2)], (uMsg == WM_XBUTTONDOWN));
 		} break;
 		case WM_KEYUP: case WM_KEYDOWN: {
-			input_update_keystate(&app.keys[wParam], (uMsg == WM_KEYDOWN));
+			Event event = { (uMsg == WM_KEYDOWN ? EVENT_KEY_DOWN : EVENT_KEY_UP) };
+			event.key.vk = wParam;
+			event.key.repeat = lParam & 0xff;
+			event.key.down = (uMsg == WM_KEYDOWN);
+			app.events[app.num_events++] = event;
+
+			nbytes__update_keystate(&app.keys[wParam], (uMsg == WM_KEYDOWN));
 		} break;
 		case WM_MOUSEMOVE: {
-			app.mouse.rel_x = lParam & 0xffff;
-			app.mouse.rel_y = lParam >> 16;
+			int2 pos = { lParam & 0xffff, lParam >> 16 };
+
+			Event event = { EVENT_MOUSE_MOVE };
+			event.mouse.btn = 0;
+			event.mouse.down = 0;
+			event.mouse.pos = pos;
+			app.events[app.num_events++] = event;
+
+			app.mouse.relative = pos;
 		} break;
 		case WM_MOUSEWHEEL: {
 			short wheel_delta = (short) (wParam >> 16);
@@ -98,7 +144,7 @@ nbytes_win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 VOID CALLBACK
-nbytes_win32_handle_messages(PVOID lpParameter)
+nbytes__win32_handle_messages(PVOID lpParameter)
 {
 	for(;;) {
 		MSG message;
@@ -111,7 +157,7 @@ nbytes_win32_handle_messages(PVOID lpParameter)
 }
 
 int
-nbytes_win32_utf8_to_utf16(wchar_t *widestring, int wcslen, const char *multibyte, int mbs_len)
+nbytes__win32_utf8_to_utf16(wchar_t *widestring, int wcslen, const char *multibyte, int mbs_len)
 {
 	int _wcs_len = MultiByteToWideChar(CP_UTF8, 0, multibyte, mbs_len, 0, 0);
 	if (_wcs_len <= wcslen) { MultiByteToWideChar(CP_UTF8, 0, multibyte, mbs_len, widestring, _wcs_len); }
@@ -119,7 +165,7 @@ nbytes_win32_utf8_to_utf16(wchar_t *widestring, int wcslen, const char *multibyt
 }
 
 int
-nbytes_win32_utf16_to_utf8(char *multibyte, int mbs_len, wchar_t *widestring, int wcs_len)
+nbytes__win32_utf16_to_utf8(char *multibyte, int mbs_len, wchar_t *widestring, int wcs_len)
 {
 	int _mbs_len = WideCharToMultiByte(CP_UTF8, 0, widestring, wcs_len, 0, 0, 0, 0);
 	if (_mbs_len <= mbs_len) { WideCharToMultiByte(CP_UTF8, 0, widestring, wcs_len, multibyte, _mbs_len, 0, 0); }
@@ -128,12 +174,12 @@ nbytes_win32_utf16_to_utf8(char *multibyte, int mbs_len, wchar_t *widestring, in
 
 
 bool
-nbytes_win32_prepare_fibers()
+nbytes__win32_prepare_fibers()
 {
 	static bool is_initialized;
 	if(!is_initialized) {
 		win32_main_fiber = ConvertThreadToFiber(0);
-		win32_msg_fiber = CreateFiber(0, nbytes_win32_handle_messages, 0);
+		win32_msg_fiber = CreateFiber(0, nbytes__win32_handle_messages, 0);
 		assert(win32_main_fiber && win32_msg_fiber);
 
 		is_initialized = true;
@@ -142,21 +188,21 @@ nbytes_win32_prepare_fibers()
 }
 
 bool
-nbytes_win32_set_vsync(bool enable)
+nbytes__win32_set_vsync(bool enable)
 {
 	if (!opengl_loader_supports_ext("WGL_EXT_swap_control")) { return !enable; }
 	return wglSwapIntervalEXT(enable);
 }
 
 bool
-nbytes_win32_get_vsync()
+nbytes__win32_get_vsync()
 {
 	if (!opengl_loader_supports_ext("WGL_EXT_swap_control")) { return false; }
 	return wglGetSwapIntervalEXT();
 }
 
 void
-nbytes_win32_set_size(Win32Window *wnd, int2 size)
+nbytes__win32_set_size(Win32Window *wnd, int2 size)
 {
 	if(win32_dragging) { return; }
 	RECT rc = {0, 0, (long) size.x, (long) size.y};
@@ -165,7 +211,7 @@ nbytes_win32_set_size(Win32Window *wnd, int2 size)
 }
 
 int2
-nbytes_win32_get_size(Win32Window *wnd)
+nbytes__win32_get_size(Win32Window *wnd)
 {
 	RECT rc;
 	GetClientRect(wnd->hwnd, &rc);
@@ -173,14 +219,14 @@ nbytes_win32_get_size(Win32Window *wnd)
 }
 
 void
-nbytes_win32_set_pos(Win32Window *wnd, int2 pos)
+nbytes__win32_set_pos(Win32Window *wnd, int2 pos)
 {
 	if(win32_dragging) { return; }
 	SetWindowPos(wnd->hwnd, 0, pos.x, pos.y, 0, 0, SWP_NOSIZE);
 }
 
 int2
-nbytes_win32_get_pos(Win32Window *wnd)
+nbytes__win32_get_pos(Win32Window *wnd)
 {
 	RECT rect;
 	GetWindowRect(wnd->hwnd, &rect);
@@ -188,17 +234,30 @@ nbytes_win32_get_pos(Win32Window *wnd)
 }
 
 bool
-nbytes_win32_set_title(Win32Window *wnd, const char *title, int len)
+nbytes__win32_set_title(Win32Window *wnd, const char *title, int len)
 {
-	size_t res = nbytes_win32_utf8_to_utf16(wnd->title, NBYTES_WIN32_MAX_TITLE_LEN, title, len);
+	size_t res = nbytes__win32_utf8_to_utf16(wnd->title, NBYTES_WIN32_MAX_TITLE_LEN, title, len);
 	assert(res == len);
 	return SetWindowTextW(wnd->hwnd, wnd->title);
 }
 
 void
-nbytes_win32_swapbuffers(Win32Window *wnd)
+nbytes__win32_swapbuffers(Win32Window *wnd)
 {
 	SwapBuffers(wnd->hdc);
+}
+
+bool
+nbytes_register_hotkey(int id, int vk, int mod)
+{
+	// id must be within the region 0x0000 - 0xBFFF
+	if(id >= 0xBFFF) { return false; }
+	int winmod = ((mod & KEYMOD_ALT) != 0) << 0 |
+	             ((mod & KEYMOD_CTRL) != 0) << 1 |
+	             ((mod & KEYMOD_SHIFT) != 0 ) << 2 |
+	             ((mod & KEYMOD_META) != 0)  << 3 |
+	             MOD_NOREPEAT;
+	return(RegisterHotKey(win32_window.hwnd, id, winmod, vk));
 }
 
 void
@@ -206,8 +265,13 @@ nbytes_update_events()
 {
 	app.keymod = 0;
 	for(int vk = 0; vk < NBYTES_NUM_MAX_KEYS; vk++) {
-		input_reset_keystate(&app.keys[vk]);
+		nbytes__reset_keystate(&app.keys[vk]);
 	}
+
+	#ifdef NBYTES_ZERO_EVENT_BUFFER
+	memset(app.events, 0, app.num_events);
+	#endif
+	app.num_events = 0;
 
 	/*
 	Windows message queue workaround with Fibers to prevent the recursive calls into
@@ -216,34 +280,30 @@ nbytes_update_events()
 	*/
 	SwitchToFiber(win32_msg_fiber);
 
-	if(app.keys[VK_SHIFT].down) {
-		app.keymod |= 1 << 0;
-	}
-	if(app.keys[VK_CONTROL].down) {
-		app.keymod |= 1 << 1;
-	}
-	if(app.keys[VK_MENU].down) {
-		app.keymod |= 1 << 2;
-	}
+	if(GetAsyncKeyState(VK_LSHIFT)) { app.keymod |= KEYMOD_LSHIFT; }
+	if(GetAsyncKeyState(VK_RSHIFT)) { app.keymod |= KEYMOD_RSHIFT; }
+	if(GetAsyncKeyState(VK_LCONTROL)) { app.keymod |= KEYMOD_LCTRL; }
+	if(GetAsyncKeyState(VK_RCONTROL)) { app.keymod |= KEYMOD_RCTRL; }
+	if(GetAsyncKeyState(VK_LMENU)) { app.keymod |= KEYMOD_LALT; }
+	if(GetAsyncKeyState(VK_RMENU)) { app.keymod |= KEYMOD_RALT; }
+	if(GetAsyncKeyState(VK_LWIN)) { app.keymod |= KEYMOD_LMETA; }
+	if(GetAsyncKeyState(VK_RWIN)) { app.keymod |= KEYMOD_RMETA; }
 
 	if(win32_dragging) {
 		// win32 hack to reset keystate when the window is currently in dragmode.
 		app.keymod = 0;
 		for(int vk = 0; vk < NBYTES_NUM_MAX_KEYS; vk++) {
-			input_reset_keystate(&app.keys[vk]);
+			nbytes__reset_keystate(&app.keys[vk]);
 			app.keys[vk].down = false;
 		}
 	}
 
 	POINT cursor;
 	GetCursorPos(&cursor);
-	app.mouse.x = cursor.x;
-	app.mouse.y = cursor.y;
-	app.mouse.dx = app.mouse.x - app.mouse.prev_state.x;
-	app.mouse.dy = app.mouse.y - app.mouse.prev_state.y;
+	app.mouse.screen = (int2) { cursor.x, cursor.y };
+	app.mouse.delta = (int2) { app.mouse.screen.x - app.mouse.prev_state.screen.x, app.mouse.screen.y - app.mouse.prev_state.screen.y };
 	app.mouse.wheel_delta = app.mouse.wheel - app.mouse.prev_state.wheel;
-	app.mouse.prev_state.x = app.mouse.x;
-	app.mouse.prev_state.y = app.mouse.y;
+	app.mouse.prev_state.screen = app.mouse.screen;
 	app.mouse.prev_state.wheel = app.mouse.wheel;
 }
 
@@ -251,13 +311,13 @@ void
 nbytes_render_window()
 {
 	Win32Window *wnd = &win32_window;
-	nbytes_win32_swapbuffers(wnd);
+	nbytes__win32_swapbuffers(wnd);
 }
 
 bool
 nbytes_init_window()
 {
-	nbytes_win32_prepare_fibers();
+	nbytes__win32_prepare_fibers();
 
 	if(!app.window.title) { app.window.title = NBYTES_DEFAULT_TITLE; }
 	app.window.pos.x = (app.window.pos.x == NBYTES_DEFAULT_WINDOW_POS ? CW_USEDEFAULT : app.window.pos.x);
@@ -273,9 +333,10 @@ nbytes_init_window()
 
 	WNDCLASSEXW wnd_class   = { sizeof(wnd_class) };
 	wnd_class.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-	wnd_class.lpfnWndProc   = nbytes_win32_wndproc;
+	wnd_class.lpfnWndProc   = nbytes__win32_wndproc;
 	wnd_class.lpszClassName = NBYTES_WIN32_WNDCLASS;
 	wnd_class.hCursor       = LoadCursor(0, IDC_CROSS);
+	//ShowCursor(false);
 	//wnd_class.cbClsExtra	= sizeof(int);
 
 	DWORD last_error = 0;
@@ -380,38 +441,51 @@ nbytes_update_window()
 	app.window.prev_state.focus = app.window.focus;
 
 	if(app.window.size.x != app.window.prev_state.size.x || app.window.size.y != app.window.prev_state.size.y) {
-		nbytes_win32_set_size(wnd, app.window.size);
+		nbytes__win32_set_size(wnd, app.window.size);
 	}
-	app.window.size = nbytes_win32_get_size(wnd);
+	app.window.size = nbytes__win32_get_size(wnd);
 	app.window.resized = (app.window.prev_state.size.x != app.window.size.x || app.window.prev_state.size.y != app.window.size.y);
 	app.window.prev_state.size = app.window.size;
 
 	if(app.window.pos.x != app.window.prev_state.pos.x || app.window.pos.y != app.window.prev_state.pos.y) {
-		nbytes_win32_set_pos(wnd, app.window.pos);
+		nbytes__win32_set_pos(wnd, app.window.pos);
 	}
-	app.window.pos = nbytes_win32_get_pos(wnd);
+	app.window.pos = nbytes__win32_get_pos(wnd);
 	app.window.moved = (app.window.prev_state.pos.x != app.window.pos.x || app.window.prev_state.pos.y != app.window.pos.y);
 	app.window.prev_state.pos = app.window.pos;
 
 	if(app.window.opengl.vsync != app.window.prev_state.opengl.vsync) {
-		nbytes_win32_set_vsync(app.window.opengl.vsync);
-		app.window.opengl.vsync = app.window.prev_state.opengl.vsync = nbytes_win32_get_vsync();
+		nbytes__win32_set_vsync(app.window.opengl.vsync);
+		app.window.prev_state.opengl.vsync = nbytes__win32_get_vsync();
+		if(app.window.prev_state.opengl.vsync != app.window.opengl.vsync) {
+			warn("Failed to set VSync to \"%s\". It's either disabled by driver or not available!", app.window.opengl.vsync ? "true" : "false");
+		}
+		app.window.opengl.vsync = app.window.prev_state.opengl.vsync;
 	}
 
 	if(app.window.title != app.window.prev_state.title) {
-		nbytes_win32_set_title(&win32_window, app.window.title, strlen(app.window.title));
+		nbytes__win32_set_title(&win32_window, app.window.title, strlen(app.window.title));
 		app.window.prev_state.title = app.window.title;
 	}
+}
+
+bool
+nbytes_init_display()
+{
+	DEVMODEW display_settings;
+	if(!EnumDisplaySettingsW(0, ENUM_CURRENT_SETTINGS, &display_settings)) { return false; }
+	app.display.size = (int2) {display_settings.dmPelsWidth, display_settings.dmPelsHeight};
+	app.display.refresh_rate = display_settings.dmDisplayFrequency;
+	app.display.dpi = GetDeviceCaps(win32_window.hdc, LOGPIXELSX);
+	return true;
 }
 
 bool
 nbytes_init_time()
 {
 	LARGE_INTEGER frequency;
-	QueryPerformanceFrequency(&frequency);
 	LARGE_INTEGER counter;
-	QueryPerformanceCounter(&counter);
-
+	if(!QueryPerformanceFrequency(&frequency) || !QueryPerformanceCounter(&counter)) { return false; }
 	app.time.ticks_per_sec = frequency.QuadPart;
 	app.time.start_ticks = counter.QuadPart;
 	return true;
