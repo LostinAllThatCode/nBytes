@@ -11,6 +11,11 @@ typedef struct Ball {
 } Ball;
 static Ball *game_balls;
 static BakedFont font;
+enum {
+	ENTITIES_AS_RECTS,
+	ENTITIES_AS_CIRCLES,
+};
+static int DRAWMODE = ENTITIES_AS_CIRCLES;
 
 void
 opengl_setup()
@@ -81,8 +86,11 @@ update_balls(Ball *balls)
 			effect_change_color(ball);
 		}
 
-		rgl_draw_filled_circle(ball->pos, ball->clr, ball->size.x / 2);
-		//rgl_draw_colored_rect2d(RGL_CENTER, ball->pos, ball->clr, ball->size.x, ball->size.y);
+		if(DRAWMODE == ENTITIES_AS_CIRCLES) {
+			rgl_draw_filled_circle(ball->pos, ball->clr, ball->size.x / 2);
+		}	else {
+			rgl_draw_colored_rect2d(RGL_CENTER, ball->pos, ball->clr, ball->size.x, ball->size.y);
+		}
 	}
 }
 
@@ -93,6 +101,7 @@ draw_debuginfo(bool debug, int font_tex)
 	static float dbg_update_timer = DBG_UPDATE_INTERVAL;
 	static char dbg_buffer[1024];
 	static int4 dbg_draw_region;
+
 	const static char *gl_version, *gl_vendor;
 	if(!gl_version) {
 		gl_version = glGetString(GL_VERSION);
@@ -111,8 +120,9 @@ draw_debuginfo(bool debug, int font_tex)
 			dbg_draw_region = font_get_text_bounds(&font, 11, dbg_buffer, len);
 			dbg_update_timer = 0.0f;
 		}
-		rgl_draw_colored_rect2d(RGL_TOPLEFT, vec2(19 + dbg_draw_region.left, 19 + dbg_draw_region.top), vec4(0, 0, 0, .8f), 23 + dbg_draw_region.right, 23 + dbg_draw_region.bottom);
-		rgl_draw_text2d(&font, font_tex, 11, RGL_LEFT_ALIGN, vec2(21, 21), vec4(1, 1, 1, 1), dbg_buffer);
+		rgl_draw_colored_rect2d(RGL_TOPLEFT, vec2(6 + dbg_draw_region.left, 6 + dbg_draw_region.top), vec4(0.1f, 0.1f, 0.1f, .8f),
+		                        dbg_draw_region.right + 6, dbg_draw_region.bottom + 6);
+		rgl_draw_text2d(&font, font_tex, 11, RGL_LEFT_ALIGN, vec2(10, 10), vec4(1, 1, 1, 1), dbg_buffer);
 	}
 	dbg_update_timer += app.time.delta_secs;
 
@@ -182,6 +192,10 @@ reset:
 			app.window.opengl.vsync = !app.window.opengl.vsync;
 		}
 
+		if(app.keys['M'].pressed) {
+			DRAWMODE = !DRAWMODE;
+		}
+
 		size += app.mouse.wheel_delta;
 		size = MAX(size, 1);
 		t += app.time.delta_secs;
@@ -198,7 +212,7 @@ reset:
 
 		update_balls(game_balls);
 
-
+		if(app.keys['F'].pressed) { app.window.bordered_fullscreen = !app.window.bordered_fullscreen; }
 		if(app.keys['D'].pressed) { debug = !debug; }
 		draw_debuginfo(debug, font_tex);
 
@@ -210,14 +224,32 @@ reset:
 			rgl_draw_text2d(&font, font_tex, 33, RGL_CENTERED, vec2(midx, midy), vec4(.1f, .4f, .8f, blendout), "THE USELESS WINDOW");
 			blendout -= 0.005f;
 		}
-		rgl_draw_filled_circle(vec2(app.mouse.relative.x, app.mouse.relative.y), vec4(1, 1, 1, 1), size / 2);
 
-		rgl_draw_text2d(&font, font_tex, 22, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 71), vec4(1, 1, 1, 1), "CONTROLS");
-		rgl_draw_text2d(&font, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 51), vec4(1, 1, 1, 1), "Change size for new entities  |     MOUSEWHEEL UP/DOWN");
-		rgl_draw_text2d(&font, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 41), vec4(1, 1, 1, 1), "Hold and move mouse to add new entities  |                             LEFT MOUSE");
-		rgl_draw_text2d(&font, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 31), vec4(1, 1, 1, 1), "Toggle VSYNC   |                                                      V");
-		rgl_draw_text2d(&font, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 21), vec4(1, 1, 1, 1), "Display debug info  |                                                      D");
-		rgl_draw_text2d(&font, font_tex, 11, RGL_RIGHT_ALIGN, vec2(app.window.size.x - 10, app.window.size.y - 10), vec4(1, 1, 1, 1), "Restart/Reset  |                                                      R");
+		rgl_draw_filled_circle(vec2(app.mouse.relative.x, app.mouse.relative.y), vec4(1, 0, 1, .5f), size / 2);
+		rgl_draw_circle(vec2(app.mouse.relative.x, app.mouse.relative.y), vec4(1, 0, 1, 1), size / 2);
+
+		rgl_draw_text2d(&font, font_tex, 22, RGL_LEFT_ALIGN, vec2(10, app.window.size.y - 101), vec4(1, 1, 1, 1),
+		                "CONTROLS");
+		rgl_draw_colored_rect2d(RGL_TOPLEFT, vec2(8, app.window.size.y - 87), vec4(1, 1, 1, 1), 310, 1);
+		rgl_draw_text2d(&font, font_tex, 11, RGL_LEFT_ALIGN, vec2(10, app.window.size.y - 81), vec4(1, 1, 1, 1),
+		                "%-s  |  %-s\n"
+		                "%-s  |  %-s\n"
+		                "%-s  |  %-s\n"
+		                "%-s  |  %-s\n"
+		                "%-s  |  %-s\n"
+		                "%-s  |  %-s\n"
+		                "%-s  |  %-s",
+		                "MOUSEWHEEL UP/DOWN", "Change size for new entities",
+		                "LEFT MOUSE                        ", "Hold and move mouse to add new entities",
+		                "V                                                 ", "Toggle VSYNC",
+		                "F                                                 ", "Toggle Fullscreen",
+		                "M                                                 ", "Toggle render mode(RECTS/CIRCLES)",
+		                "D                                                 ", "Display debug info",
+		                "R                                                 ", "Restart/Reset");
+		#if 0
+		"Change size for new entities  |     \n"
+
+		#endif
 
 		end_scene2d();
 		nbytes_render_window();

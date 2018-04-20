@@ -82,7 +82,7 @@ rgl_draw_filled_circle(v2 position, v4 color, float radius)
 	glColor4f(color.r, color.g, color.b, color.a);
 	glVertex2d(position.x, position.y);
 	for(int i = 0; i <= subdiv; i++) {
-		double angle = 2 * NBYTES_PI * i / subdiv;
+		double angle = PI2 * i / subdiv;
 		double x = position.x + radius *  cos(angle);
 		double y = position.y + radius * sin(angle);
 		glVertex2d(x, y);
@@ -98,14 +98,16 @@ rgl_draw_circle(v2 position, v4 color, float radius)
 		rgl_draw_colored_rect2d(RGL_CENTER, position, color, radius * 2, radius * 2);
 		return;
 	}
+
 	glBegin(GL_LINE_LOOP);
 	glColor4f(color.r, color.g, color.b, color.a);
 	for(int i = 0; i <= subdiv; i++) {
-		double angle = 2 * NBYTES_PI * i / subdiv;
+		double angle = PI2 * i / subdiv;
 		double x = position.x + radius *  cos(angle);
 		double y = position.y + radius * sin(angle);
 		glVertex2d(x, y);
 	}
+
 	glEnd();
 }
 

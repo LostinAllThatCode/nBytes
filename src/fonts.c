@@ -91,8 +91,9 @@ font_get_text_bounds(BakedFont *font, int size, const char *text, size_t len)
 	float dy = 0;
 	float dx = 0;
 
-	int4 result = {0, 0, 0, size};
-	for(int i = 0; i < len; i++) {
+	int adv_csr = 0;
+	int4 result = {0, 0, 0, 0};
+	for(int i = 0; i < len;) {
 		if(text[i] == '\n') {
 			dy += size;
 			dx = 0;
@@ -100,7 +101,7 @@ font_get_text_bounds(BakedFont *font, int size, const char *text, size_t len)
 			continue;
 		}
 
-		int unicode = str_utf8_to_unicode(text + i, 0);
+		int unicode = str_utf8_to_unicode(text + i, &adv_csr);
 		stbtt_packedchar *character_data = map_get(&font->glyphs, (void *) PACK_GLYPH(size, unicode));
 		if(character_data) {
 			stbtt_aligned_quad q = {0};
@@ -110,8 +111,9 @@ font_get_text_bounds(BakedFont *font, int size, const char *text, size_t len)
 				result.right = dx;
 			}
 		}
+		i += adv_csr;
 	}
-	result.bottom = dy;
+	result.bottom = dy + size;
 	return result;
 }
 

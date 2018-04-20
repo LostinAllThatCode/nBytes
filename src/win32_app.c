@@ -4,6 +4,7 @@ typedef struct Win32Window {
 	wchar_t title[NBYTES_WIN32_MAX_TITLE_LEN];
 	HWND hwnd;
 	HDC hdc;
+	WINDOWPLACEMENT lastpos;
 	union {
 		struct {
 			HGLRC ctx;
@@ -241,6 +242,36 @@ nbytes__win32_set_title(Win32Window *wnd, const char *title, int len)
 	return SetWindowTextW(wnd->hwnd, wnd->title);
 }
 
+bool
+nbytes__win32_set_fullscreen(Win32Window *wnd, BOOL enable)
+{
+	// NOTE(casey): This follows Raymond Chen's prescription
+	// for fullscreen toggling, see:
+	// http://blogs.msdn.com/b/oldnewthing/archive/2010/04/12/9994016.aspx
+
+	DWORD Style = GetWindowLong(wnd->hwnd, GWL_STYLE);
+	if(Style & WS_OVERLAPPEDWINDOW && enable) {
+		MONITORINFO MonitorInfo = {sizeof(MonitorInfo)};
+		if(GetWindowPlacement(wnd->hwnd, &wnd->lastpos) &&
+		   GetMonitorInfo(MonitorFromWindow(wnd->hwnd, MONITOR_DEFAULTTOPRIMARY), &MonitorInfo)) {
+			SetWindowLong(wnd->hwnd, GWL_STYLE, Style & ~WS_OVERLAPPEDWINDOW);
+			SetWindowPos(wnd->hwnd, HWND_TOP,
+			             MonitorInfo.rcMonitor.left, MonitorInfo.rcMonitor.top,
+			             MonitorInfo.rcMonitor.right - MonitorInfo.rcMonitor.left,
+			             MonitorInfo.rcMonitor.bottom - MonitorInfo.rcMonitor.top,
+			             SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		}
+	} else {
+		SetWindowLong(wnd->hwnd, GWL_STYLE, Style | WS_OVERLAPPEDWINDOW);
+		SetWindowPlacement(wnd->hwnd, &wnd->lastpos);
+		SetWindowPos(wnd->hwnd, 0, 0, 0, 0, 0,
+		             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+		             SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	}
+	return true;
+}
+
+
 void
 nbytes__win32_swapbuffers(Win32Window *wnd)
 {
@@ -312,6 +343,13 @@ nbytes_render_window()
 {
 	Win32Window *wnd = &win32_window;
 	nbytes__win32_swapbuffers(wnd);
+}
+
+
+void
+nbytes_free_window()
+{
+	DestroyWindow(win32_window.hwnd);
 }
 
 bool
@@ -418,7 +456,6 @@ nbytes_init_window()
 	app.window.prev_state.size = app.window.size;
 	app.window.prev_state.pos = app.window.pos;
 
-
 	return true;
 }
 
@@ -439,6 +476,12 @@ nbytes_update_window()
 	app.window.focus = (GetForegroundWindow() == wnd->hwnd);
 	app.window.focused = (app.window.focus != app.window.prev_state.focus);
 	app.window.prev_state.focus = app.window.focus;
+
+	if(app.window.bordered_fullscreen != app.window.prev_state.bordered_fullscreen) {
+		nbytes__win32_set_fullscreen(wnd, app.window.bordered_fullscreen);
+	}
+	app.window.prev_state.bordered_fullscreen = app.window.bordered_fullscreen;
+
 
 	if(app.window.size.x != app.window.prev_state.size.x || app.window.size.y != app.window.prev_state.size.y) {
 		nbytes__win32_set_size(wnd, app.window.size);

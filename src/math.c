@@ -1,4 +1,5 @@
-#define NBYTES_PI 3.14159265359f
+#define PI 3.14159265358979323846264338327950288
+const double PI2 = PI + PI;
 
 // put this stuff into a math thing ?!?!?
 typedef union v2 {
@@ -78,7 +79,7 @@ __forceinline mx4
 mx_perspective(float fov, float aspect, float znear, float zfar)
 {
 
-	float t = znear * tan(fov * NBYTES_PI / 360.f);
+	float t = znear * tan(fov * PI / 360.f);
 	float r = t * aspect;
 	return mx_frustum(-r, r, -t, t, znear, zfar);
 }

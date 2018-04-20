@@ -142,6 +142,7 @@ typedef struct Display {
 typedef struct Window {
 	bool hidden;
 	bool focus;
+	bool bordered_fullscreen;
 
 	bool focused;
 	bool resized;
@@ -167,6 +168,7 @@ typedef struct Window {
 	struct {
 		bool hidden;
 		bool focus;
+		bool bordered_fullscreen;
 
 		int2 size;
 		int2 pos;
@@ -231,11 +233,17 @@ extern App app;
 bool
 nbytes_update()
 {
-	nbytes_update_events();
-	nbytes_update_window();
-	nbytes_update_time();
-	app.num_updates++;
-	return !app.quit;
+	if(app.quit) {
+		nbytes_free_window();
+		nbytes_update_events();
+		return false;
+	} else {
+		nbytes_update_events();
+		nbytes_update_window();
+		nbytes_update_time();
+		app.num_updates++;
+		return !app.quit;
+	}
 }
 
 bool

@@ -2,7 +2,7 @@
 
 set defines=
 set extlibs="../../src"
-set compilerflags=-nologo -Od -MTd -EHa- -Z7 -FC -I%extlibs% -WX
+set compilerflags=-nologo -O2 -MT -EHa- -Z7 -FC -I%extlibs% -WX
 REM set compilerflags=-nologo -O2 -MT -EHa- -FC -I%extlibs% -WX
 set linkerflags=-incremental:no -opt:ref 
 REM -nodefaultlib 
