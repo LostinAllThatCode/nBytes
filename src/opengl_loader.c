@@ -131,7 +131,7 @@ opengl_loader__fetch_extensions()
 	#ifdef GLLOADER_USE_WGL
 	if (wglGetExtensionsStringARB) {
 		// Grab the win32 WGL extensions and add the to the hashmap!
-		const GLubyte *ext = wglGetExtensionsStringARB(wglGetCurrentDC());
+		char *ext = wglGetExtensionsStringARB(wglGetCurrentDC());
 		char *cursor = strtok((char *) ext, " ");
 		for(; cursor != 0;) {
 			char *next_space = strtok(0, " ");
@@ -149,9 +149,9 @@ opengl_loader__fetch_extensions()
 		int num_ext;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
 		for(int i = 0; i < num_ext; i++) {
-			const char *ext = glGetStringi(GL_EXTENSIONS, i);
+			const GLubyte *ext = glGetStringi(GL_EXTENSIONS, i);
 			if(ext) {
-				uint64_t hash = str_hash(ext, strlen(ext));
+				uint64_t hash = str_hash((const char *) ext, strlen((const char *) ext));
 				map_put(&opengl_loader__supported_extensions, (void *) hash, (void *) ext);
 			}
 		}

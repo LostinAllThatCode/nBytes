@@ -19,7 +19,7 @@ typedef enum RetroGLTextAlign {
 int
 rgl_create_linear_texture(int input_format, int width, int height, uint8_t *data, int gl_format)
 {
-	int tex;
+	GLuint tex;
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
 	//glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -154,7 +154,7 @@ rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align,
 
 
 		int unicode = str_utf8_to_unicode(text + i, &adv_csr);
-		stbtt_packedchar *character_data = map_get(&font->glyphs, (void *) PACK_GLYPH(size, unicode));
+		stbtt_packedchar *character_data = (stbtt_packedchar *) map_get(&font->glyphs, (void *) PACK_GLYPH(size, unicode));
 		if(character_data) {
 			stbtt_aligned_quad q = {0};
 			stbtt_GetPackedQuad(character_data, font->textures[0].width, font->textures[0].height, 0, &x, &y, &q, 0);

@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <string.h>
 #include <inttypes.h>
+#include <time.h>
 
 #include "shared.c"
 #include "math.c"
@@ -126,11 +127,11 @@ typedef struct Time {
 	int delta_msecs;
 	float delta_secs;
 
-	int ticks;
-	int nsecs;
-	int usecs;
-	int msecs;
-	float secs;
+	uint64_t ticks;
+	uint64_t nsecs;
+	uint64_t usecs;
+	uint64_t msecs;
+	double secs;
 } Time;
 
 typedef struct Display {
@@ -142,7 +143,7 @@ typedef struct Display {
 typedef struct Window {
 	bool hidden;
 	bool focus;
-	bool bordered_fullscreen;
+	bool borderless_fullscreen;
 
 	bool focused;
 	bool resized;
@@ -168,7 +169,7 @@ typedef struct Window {
 	struct {
 		bool hidden;
 		bool focus;
-		bool bordered_fullscreen;
+		bool borderless_fullscreen;
 
 		int2 size;
 		int2 pos;
@@ -210,6 +211,8 @@ typedef struct App {
 	Mouse mouse;
 	Display display;
 	Window window;
+
+	const char *error;
 } App;
 extern App app;
 
@@ -255,6 +258,23 @@ nbytes_init()
 	return nbytes_update();
 }
 
+void
+nbytes_check_prefined_hotkeys()
+{
+	// exit application
+	if(app.keys[VK_ESCAPE].pressed) {
+		app.quit = true;
+	}
 
+	// toggle vsync
+	if(app.keys['V'].pressed) {
+		app.window.opengl.vsync = !app.window.opengl.vsync;
+	}
+
+	// toggle borderless fullscreen
+	if(app.keys['F'].pressed) {
+		app.window.borderless_fullscreen = !app.window.borderless_fullscreen;
+	}
+}
 
 #endif

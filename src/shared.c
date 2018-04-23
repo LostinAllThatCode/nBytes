@@ -69,6 +69,7 @@ typedef union int2 {
 		int32_t height;
 	};
 } int2;
+__forceinline int2 INT2(int32_t x, int32_t y) { int2 result = {x, y,}; return result; }
 
 typedef union int3 {
 	struct {

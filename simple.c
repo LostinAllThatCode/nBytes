@@ -1,6 +1,7 @@
 #include <nbytes.h>
 App app;
 
+
 typedef struct Ball {
 	v2 pos;
 	v2 size;
@@ -11,6 +12,7 @@ typedef struct Ball {
 } Ball;
 static Ball *game_balls;
 static BakedFont font;
+
 enum {
 	ENTITIES_AS_RECTS,
 	ENTITIES_AS_CIRCLES,
@@ -62,21 +64,22 @@ spawn_new_ball(Ball **balls, float x, float y, float dirx, float diry, float siz
 	new_ball.pos = vec2(x, y);
 	new_ball.size = vec2(size_x, size_y);
 	new_ball.dir = vec2(SIGN(dirx), SIGN(diry));
-	new_ball.vel = vec2(abs(dirx / app.time.delta_secs) * .125f, abs(diry / app.time.delta_secs) * .125f);
+	new_ball.vel = vec2(2, 2);
 	new_ball.cs = rand() % 4;
 	effect_change_color(&new_ball);
 	buf_push(*balls, new_ball);
 }
 
 void
-update_balls(Ball *balls)
+update_balls(Ball *balls, float dt)
 {
 	assert(buf_len(balls) != 0);
 	for(int i = 0; i < buf_len(balls); i++) {
 		Ball *ball = balls + i;
 
-		ball->pos.x += ball->dir.x * ball->vel.x * app.time.delta_secs;
-		ball->pos.y += ball->dir.y * ball->vel.y * app.time.delta_secs;
+		ball->pos.x += ball->dir.x * ball->vel.x * dt;
+		ball->pos.y += ball->dir.y * ball->vel.y * dt;
+
 		if(ball->pos.x - ball->size.x / 2.f <= 1.0f || ball->pos.x + ball->size.x / 2.f >= app.window.size.x + 1.0f ) {
 			ball->dir.x *= -1.0f;
 			effect_change_color(ball);
@@ -85,7 +88,16 @@ update_balls(Ball *balls)
 			ball->dir.y *= -1.0f;
 			effect_change_color(ball);
 		}
+	}
+}
 
+
+void
+draw_balls(Ball *balls)
+{
+	assert(buf_len(balls) != 0);
+	for(int i = 0; i < buf_len(balls); i++) {
+		Ball *ball = balls + i;
 		if(DRAWMODE == ENTITIES_AS_CIRCLES) {
 			rgl_draw_filled_circle(ball->pos, ball->clr, ball->size.x / 2);
 		}	else {
@@ -97,12 +109,12 @@ update_balls(Ball *balls)
 void
 draw_debuginfo(bool debug, int font_tex)
 {
-#define DBG_UPDATE_INTERVAL 0.025f
+#define DBG_UPDATE_INTERVAL .1f
 	static float dbg_update_timer = DBG_UPDATE_INTERVAL;
 	static char dbg_buffer[1024];
 	static int4 dbg_draw_region;
 
-	const static char *gl_version, *gl_vendor;
+	static const GLubyte *gl_version, *gl_vendor;
 	if(!gl_version) {
 		gl_version = glGetString(GL_VERSION);
 		gl_vendor = glGetString(GL_VENDOR);
@@ -110,13 +122,19 @@ draw_debuginfo(bool debug, int font_tex)
 
 	if(debug) {
 		if(dbg_update_timer > DBG_UPDATE_INTERVAL) {
-			int len = snprintf(dbg_buffer, 1024, "OpenGL Version: %s\nOpenGL Vendor: %s\nVSync: %s\nWindow: %ix%i %i %i %i\n"
-			                   "Mouse: %i %i %i %i %i %i %i %i\nTime: %.6fs %i/%i\n\nEntities: %i",
+			int len = snprintf(dbg_buffer, 1024, "OpenGL Version: %s\n"
+			                   "OpenGL Vendor: %s\n"
+			                   "VSync: %s\n"
+			                   "Window: %ix%i %i %i %i\n"
+			                   "Mouse: %i %i %i %i %i %i %i %i\n"
+			                   "Time: %ums %.6fs %llu/%u --- %i\n"
+			                   "\n"
+			                   "Entities: %i",
 			                   gl_version,
 			                   gl_vendor,
 			                   (app.window.opengl.vsync ? "Enabled" : "Disabled"),
 			                   app.window.size.x, app.window.size.y, app.window.pos.x, app.window.pos.y, app.window.focus,
-			                   app.mouse.screen.x, app.mouse.screen.y, app.mouse.relative.x, app.mouse.relative.y, app.mouse.delta.x, app.mouse.delta.y, app.mouse.wheel, app.mouse.wheel_delta, app.time.delta_secs, app.time.ticks, app.time.delta_ticks, (int)buf_len(game_balls));
+			                   app.mouse.screen.x, app.mouse.screen.y, app.mouse.relative.x, app.mouse.relative.y, app.mouse.delta.x, app.mouse.delta.y, app.mouse.wheel, app.mouse.wheel_delta, app.time.delta_msecs, app.time.delta_secs, app.time.ticks, app.time.delta_ticks, app.num_updates, (int)buf_len(game_balls));
 			dbg_draw_region = font_get_text_bounds(&font, 11, dbg_buffer, len);
 			dbg_update_timer = 0.0f;
 		}
@@ -130,11 +148,12 @@ draw_debuginfo(bool debug, int font_tex)
 }
 
 #define HOTKEY (0xAFFF)
-#define STARTING_BALLS 32
+#define STARTING_BALLS 1
 
 int main(int argc, const char *argv[])
 {
 	static int debug;
+	app.window.borderless_fullscreen = true;
 	app.window.opengl.vsync = true;
 
 	if(!nbytes_init()) {
@@ -170,8 +189,15 @@ reset:
 	float t = 0.f;
 	float dt = 0.016f;
 
+	const uint64_t TPS = 60;
+	const uint64_t SKIP_TICKS = 1000000 / TPS;
+	const uint64_t MAX_SKIP = 10;
+	uint64_t next_tick = app.time.usecs;
+
 	float blendout = 1.0f;
 	while(nbytes_update()) {
+		nbytes_check_prefined_hotkeys();
+
 		for(int i = 0; i < app.num_events; i++) {
 			Event e = app.events[i];
 			if(e.type == EVENT_HOTKEY_PRESSED && e.hotkey.id == HOTKEY) {
@@ -184,20 +210,14 @@ reset:
 			goto reset;
 		}
 
-		if(app.keys[VK_ESCAPE].pressed) {
-			app.quit = true;
-		}
-
-		if(app.keys['V'].pressed) {
-			app.window.opengl.vsync = !app.window.opengl.vsync;
-		}
-
 		if(app.keys['M'].pressed) {
 			DRAWMODE = !DRAWMODE;
 		}
 
 		size += app.mouse.wheel_delta;
 		size = MAX(size, 1);
+
+		#if 1
 		t += app.time.delta_secs;
 		if(app.keys[VK_LBUTTON].down) {
 			if(t >= 0.01f) {
@@ -207,12 +227,23 @@ reset:
 				t = 0.f;
 			}
 		}
+		#endif
+
+		#if 1
+		int loops = 0;
+		while(app.time.usecs >= next_tick && loops < MAX_SKIP) {
+			update_balls(game_balls, 1.0f);
+			next_tick += SKIP_TICKS;
+			loops++;
+		}
+		//next_tick = app.time.usecs + SKIP_TICKS;
+		#else
+		update_balls(game_balls, app.time.delta_secs);
+		#endif
 
 		begin_scene2d();
+		draw_balls(game_balls);
 
-		update_balls(game_balls);
-
-		if(app.keys['F'].pressed) { app.window.bordered_fullscreen = !app.window.bordered_fullscreen; }
 		if(app.keys['D'].pressed) { debug = !debug; }
 		draw_debuginfo(debug, font_tex);
 
@@ -246,10 +277,6 @@ reset:
 		                "M                                                 ", "Toggle render mode(RECTS/CIRCLES)",
 		                "D                                                 ", "Display debug info",
 		                "R                                                 ", "Restart/Reset");
-		#if 0
-		"Change size for new entities  |     \n"
-
-		#endif
 
 		end_scene2d();
 		nbytes_render_window();

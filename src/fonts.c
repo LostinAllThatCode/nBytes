@@ -102,7 +102,7 @@ font_get_text_bounds(BakedFont *font, int size, const char *text, size_t len)
 		}
 
 		int unicode = str_utf8_to_unicode(text + i, &adv_csr);
-		stbtt_packedchar *character_data = map_get(&font->glyphs, (void *) PACK_GLYPH(size, unicode));
+		stbtt_packedchar *character_data = (stbtt_packedchar *) map_get(&font->glyphs, (void *) PACK_GLYPH(size, unicode));
 		if(character_data) {
 			stbtt_aligned_quad q = {0};
 			stbtt_GetPackedQuad(character_data, font->textures[0].width, font->textures[0].height, 0, &dx, &dy, &q, 0);

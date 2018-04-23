@@ -1,5 +1,6 @@
 #define NBYTES_WIN32_WNDCLASS 		L"nbytes__win32_wndclass"
 #define NBYTES_WIN32_MAX_TITLE_LEN 	512
+
 typedef struct Win32Window {
 	wchar_t title[NBYTES_WIN32_MAX_TITLE_LEN];
 	HWND hwnd;
@@ -12,7 +13,6 @@ typedef struct Win32Window {
 	};
 } Win32Window;
 
-int win32_hotkey_id_counter = 0x1000;
 bool win32_dragging;
 Win32Window win32_window;
 HANDLE win32_main_fiber;
@@ -55,7 +55,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Event event = { (uMsg == WM_LBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
 			event.mouse.btn = VK_LBUTTON;
 			event.mouse.down = (uMsg == WM_LBUTTONDOWN);
-			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
 			nbytes__update_keystate(&app.keys[VK_LBUTTON], (uMsg == WM_LBUTTONDOWN));
@@ -64,7 +64,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Event event = { (uMsg == WM_MBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
 			event.mouse.btn = VK_MBUTTON;
 			event.mouse.down = (uMsg == WM_MBUTTONDOWN);
-			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
 			nbytes__update_keystate(&app.keys[VK_MBUTTON], (uMsg == WM_MBUTTONDOWN));
@@ -73,7 +73,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Event event = { (uMsg == WM_RBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
 			event.mouse.btn = VK_RBUTTON;
 			event.mouse.down = (uMsg == WM_RBUTTONDOWN);
-			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
 			nbytes__update_keystate(&app.keys[VK_RBUTTON], (uMsg == WM_RBUTTONDOWN));
@@ -82,7 +82,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Event event = { (uMsg == WM_XBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
 			event.mouse.btn = (wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2);
 			event.mouse.down = (uMsg == WM_XBUTTONDOWN);
-			event.mouse.pos = (int2) { lParam & 0xffff, lParam >> 16 };
+			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
 			nbytes__update_keystate(&app.keys[(wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2)], (uMsg == WM_XBUTTONDOWN));
@@ -97,15 +97,13 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			nbytes__update_keystate(&app.keys[wParam], (uMsg == WM_KEYDOWN));
 		} break;
 		case WM_MOUSEMOVE: {
-			int2 pos = { lParam & 0xffff, lParam >> 16 };
-
 			Event event = { EVENT_MOUSE_MOVE };
 			event.mouse.btn = 0;
 			event.mouse.down = 0;
-			event.mouse.pos = pos;
+			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
-			app.mouse.relative = pos;
+			app.mouse.relative = event.mouse.pos;
 		} break;
 		case WM_MOUSEWHEEL: {
 			short wheel_delta = (short) (wParam >> 16);
@@ -191,7 +189,7 @@ nbytes__win32_prepare_fibers()
 bool
 nbytes__win32_set_vsync(bool enable)
 {
-	if (!opengl_loader_supports_ext("WGL_EXT_swap_control")) { return !enable; }
+	if (!opengl_loader_supports_ext("WGL_EXT_swap_control")) { return false; }
 	return wglSwapIntervalEXT(enable);
 }
 
@@ -216,7 +214,7 @@ nbytes__win32_get_size(Win32Window *wnd)
 {
 	RECT rc;
 	GetClientRect(wnd->hwnd, &rc);
-	return (int2) {rc.right, rc.bottom};
+	return INT2(rc.right, rc.bottom);
 }
 
 void
@@ -231,7 +229,7 @@ nbytes__win32_get_pos(Win32Window *wnd)
 {
 	RECT rect;
 	GetWindowRect(wnd->hwnd, &rect);
-	return (int2) {rect.left, rect.top};
+	return INT2(rect.left, rect.top);
 }
 
 bool
@@ -331,8 +329,8 @@ nbytes_update_events()
 
 	POINT cursor;
 	GetCursorPos(&cursor);
-	app.mouse.screen = (int2) { cursor.x, cursor.y };
-	app.mouse.delta = (int2) { app.mouse.screen.x - app.mouse.prev_state.screen.x, app.mouse.screen.y - app.mouse.prev_state.screen.y };
+	app.mouse.screen = INT2(cursor.x, cursor.y);
+	app.mouse.delta = INT2(app.mouse.screen.x - app.mouse.prev_state.screen.x, app.mouse.screen.y - app.mouse.prev_state.screen.y);
 	app.mouse.wheel_delta = app.mouse.wheel - app.mouse.prev_state.wheel;
 	app.mouse.prev_state.screen = app.mouse.screen;
 	app.mouse.prev_state.wheel = app.mouse.wheel;
@@ -349,6 +347,17 @@ nbytes_render_window()
 void
 nbytes_free_window()
 {
+	if(app.window.borderless_fullscreen) {
+		/*
+		Fullscreen Hack
+
+		Sometimes if the user manually quit the appication and we are in fullscreen mode the previous windows were
+		not clickable anymore. You had to minimize and maximize them to get the active again. Dunno why this happens
+		but this hack might fix it!
+		*/
+		nbytes__win32_set_fullscreen(&win32_window, false);
+	}
+
 	DestroyWindow(win32_window.hwnd);
 }
 
@@ -374,15 +383,11 @@ nbytes_init_window()
 	wnd_class.lpfnWndProc   = nbytes__win32_wndproc;
 	wnd_class.lpszClassName = NBYTES_WIN32_WNDCLASS;
 	wnd_class.hCursor       = LoadCursor(0, IDC_CROSS);
-	//ShowCursor(false);
-	//wnd_class.cbClsExtra	= sizeof(int);
 
 	DWORD last_error = 0;
 	ATOM registered 		= RegisterClassExW(&wnd_class);
 	last_error 				= GetLastError();
-	if(last_error != 0 && last_error != 1410) {
-		fatal("RegisterClassExW() failed. GetLastError = %i", last_error);
-	}
+	if(last_error != 0 && last_error != 1410) { fatal("RegisterClassExW() failed. GetLastError = %i", last_error); }
 
 	RECT rc = {0, 0, (long) app.window.size.x, (long) app.window.size.y};
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, 0);
@@ -390,15 +395,11 @@ nbytes_init_window()
 
 	DWORD style = WS_OVERLAPPEDWINDOW;
 	HWND hwnd = CreateWindowExW(0, wnd_class.lpszClassName, L"", style, app.window.pos.x, app.window.pos.y, rc.right - rc.left, rc.bottom - rc.top, 0, 0, wnd_class.hInstance, 0);
-	if(!hwnd) {
-		fatal("CreateWindowExW() failed. GetLastError = %i", GetLastError());
-	}
+	if(!hwnd) { fatal("CreateWindowExW() failed. GetLastError = %i", GetLastError()); }
 
 	HGLRC ctx 		= 0;
 	HDC hdc 		= GetDC(hwnd);
-	if (!hdc) {
-		fatal("GetDC() failed. GetLastError = %i", GetLastError());
-	}
+	if (!hdc) { fatal("GetDC() failed. GetLastError = %i", GetLastError()); }
 
 	PIXELFORMATDESCRIPTOR pfd = {0};
 	pfd.nSize                 = sizeof(pfd);
@@ -477,10 +478,10 @@ nbytes_update_window()
 	app.window.focused = (app.window.focus != app.window.prev_state.focus);
 	app.window.prev_state.focus = app.window.focus;
 
-	if(app.window.bordered_fullscreen != app.window.prev_state.bordered_fullscreen) {
-		nbytes__win32_set_fullscreen(wnd, app.window.bordered_fullscreen);
+	if(app.window.borderless_fullscreen != app.window.prev_state.borderless_fullscreen) {
+		nbytes__win32_set_fullscreen(wnd, app.window.borderless_fullscreen);
 	}
-	app.window.prev_state.bordered_fullscreen = app.window.bordered_fullscreen;
+	app.window.prev_state.borderless_fullscreen = app.window.borderless_fullscreen;
 
 
 	if(app.window.size.x != app.window.prev_state.size.x || app.window.size.y != app.window.prev_state.size.y) {
@@ -510,6 +511,13 @@ nbytes_update_window()
 		nbytes__win32_set_title(&win32_window, app.window.title, strlen(app.window.title));
 		app.window.prev_state.title = app.window.title;
 	}
+
+	if(app.window.focus && app.window.borderless_fullscreen) {
+		RECT r = {app.window.pos.x, app.window.pos.y, app.window.pos.x + app.window.size.width, app.window.pos.y + app.window.size.height};
+		ClipCursor(&r);
+	} else {
+		ClipCursor(0);
+	}
 }
 
 bool
@@ -517,7 +525,7 @@ nbytes_init_display()
 {
 	DEVMODEW display_settings;
 	if(!EnumDisplaySettingsW(0, ENUM_CURRENT_SETTINGS, &display_settings)) { return false; }
-	app.display.size = (int2) {display_settings.dmPelsWidth, display_settings.dmPelsHeight};
+	app.display.size = INT2(display_settings.dmPelsWidth, display_settings.dmPelsHeight);
 	app.display.refresh_rate = display_settings.dmDisplayFrequency;
 	app.display.dpi = GetDeviceCaps(win32_window.hdc, LOGPIXELSX);
 	return true;
@@ -541,17 +549,19 @@ nbytes_update_time()
 	QueryPerformanceCounter(&now);
 
 	uint64_t ticks = now.QuadPart - app.time.start_ticks;
+	uint64_t delta_ticks = ticks - app.time.ticks;
 
 	app.time.nsecs = (ticks * 1000 * 1000 * 1000) / app.time.ticks_per_sec;
 	app.time.usecs = (ticks * 1000 * 1000) / app.time.ticks_per_sec;
 	app.time.msecs = (ticks * 1000) / app.time.ticks_per_sec;
 	app.time.secs = (double) ticks / (double) app.time.ticks_per_sec;
 
-	app.time.delta_ticks = (int)(ticks - app.time.ticks);
-	app.time.delta_nsecs = (int)((app.time.delta_ticks * 1000 * 1000 * 1000) / app.time.ticks_per_sec);
-	app.time.delta_usecs = (int)((app.time.delta_ticks * 1000 * 1000) / app.time.ticks_per_sec);
-	app.time.delta_msecs = (int)((app.time.delta_ticks * 1000) / app.time.ticks_per_sec);
-	app.time.delta_secs = (float)app.time.delta_ticks / (float)app.time.ticks_per_sec;
+	app.time.delta_nsecs = (int)((delta_ticks * 1000 * 1000 * 1000) / app.time.ticks_per_sec);
+	app.time.delta_usecs = (int)((delta_ticks * 1000 * 1000) / app.time.ticks_per_sec);
+	app.time.delta_msecs = (int)((delta_ticks * 1000) / app.time.ticks_per_sec);
+	app.time.delta_secs = (float)delta_ticks / (float)app.time.ticks_per_sec;
+
 	app.time.ticks = ticks;
+	app.time.delta_ticks = delta_ticks;
 	return true;
 }

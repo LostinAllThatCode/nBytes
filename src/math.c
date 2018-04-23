@@ -38,6 +38,12 @@ typedef union mx4 {
 	float t[16];
 } mx4;
 
+typedef struct AABB {
+	v2 center;
+	v2 half_width;
+	v2 half_height;
+} AABB;
+
 __forceinline mx4
 mx_ortho(float left, float right, float bottom, float top, float znear, float zfar)
 {
