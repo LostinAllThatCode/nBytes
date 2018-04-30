@@ -1,6 +1,11 @@
 #include <nbytes.h>
 App app;
 
+#define TPS 60llu
+static const uint64_t SKIP_TICKS = 1000000 / TPS;
+static const uint64_t MAX_DIFF_TICKS = 1000000 / TPS * 50;
+static uint64_t next_tick;
+
 
 typedef struct Ball {
 	v2 pos;
@@ -189,12 +194,9 @@ reset:
 	float t = 0.f;
 	float dt = 0.016f;
 
-	const uint64_t TPS = 60;
-	const uint64_t SKIP_TICKS = 1000000 / TPS;
-	const uint64_t MAX_SKIP = 10;
-	uint64_t next_tick = app.time.usecs;
 
 	float blendout = 1.0f;
+	uint64_t next_tick = app.time.usecs;
 	while(nbytes_update()) {
 		nbytes_check_prefined_hotkeys();
 
@@ -205,12 +207,12 @@ reset:
 			}
 		}
 
-		if(app.keys['R'].pressed) {
+		if(app.keys[KEY_R].pressed) {
 			buf_clear(game_balls);
 			goto reset;
 		}
 
-		if(app.keys['M'].pressed) {
+		if(app.keys[KEY_M].pressed) {
 			DRAWMODE = !DRAWMODE;
 		}
 
@@ -219,7 +221,7 @@ reset:
 
 		#if 1
 		t += app.time.delta_secs;
-		if(app.keys[VK_LBUTTON].down) {
+		if(app.keys[KEY_MOUSE_LEFT].down) {
 			if(t >= 0.01f) {
 				if(app.mouse.relative.x > size && app.mouse.relative.x < app.window.size.x - size && app.mouse.relative.y > size && app.mouse.relative.y < app.window.size.y - size  && (SIGN(app.mouse.delta.x) || SIGN(app.mouse.delta.y))) {
 					spawn_new_ball(&game_balls, app.mouse.relative.x, app.mouse.relative.y, app.mouse.delta.x, app.mouse.delta.y, size, size);
@@ -228,23 +230,18 @@ reset:
 			}
 		}
 		#endif
-
-		#if 1
+		//  fixed timestep variable render
 		int loops = 0;
-		while(app.time.usecs >= next_tick && loops < MAX_SKIP) {
+		while(app.time.usecs >= next_tick && loops < 10) {
 			update_balls(game_balls, 1.0f);
 			next_tick += SKIP_TICKS;
 			loops++;
 		}
-		//next_tick = app.time.usecs + SKIP_TICKS;
-		#else
-		update_balls(game_balls, app.time.delta_secs);
-		#endif
 
 		begin_scene2d();
 		draw_balls(game_balls);
 
-		if(app.keys['D'].pressed) { debug = !debug; }
+		if(app.keys[KEY_D].pressed) { debug = !debug; }
 		draw_debuginfo(debug, font_tex);
 
 		if(blendout > 0.f);
@@ -253,7 +250,7 @@ reset:
 			float midy = app.window.size.y / 2.f;
 			rgl_draw_text2d(&font, font_tex, 22, RGL_CENTERED, vec2(midx, midy - 33), vec4(1, 1, 0, blendout), "nBytes");
 			rgl_draw_text2d(&font, font_tex, 33, RGL_CENTERED, vec2(midx, midy), vec4(.1f, .4f, .8f, blendout), "THE USELESS WINDOW");
-			blendout -= 0.005f;
+			blendout -= 0.5f * app.time.delta_secs;
 		}
 
 		rgl_draw_filled_circle(vec2(app.mouse.relative.x, app.mouse.relative.y), vec4(1, 0, 1, .5f), size / 2);

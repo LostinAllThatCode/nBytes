@@ -2,7 +2,7 @@
 #define NBYTES_WIN32_WNDCLASS 		L"nbytes__win32_wndclass"
 #define NBYTES_WIN32_MAX_TITLE_LEN 	512
 
-uint8_t win32_vk_to_nbytes[NBYTES_NUM_MAX_KEYS] {
+uint8_t win32_vk_to_nbytes[NBYTES_NUM_MAX_KEYS] = {
 	/* 0x0 */ 0,
 	/* VK_LBUTTON */ KEY_MOUSE_LEFT,
 	/* VK_RBUTTON */ KEY_MOUSE_RIGHT,
