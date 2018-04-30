@@ -1,5 +1,160 @@
+#define NBYTES_WIN32_USE_RAWINPUT 	0
 #define NBYTES_WIN32_WNDCLASS 		L"nbytes__win32_wndclass"
 #define NBYTES_WIN32_MAX_TITLE_LEN 	512
+
+uint8_t win32_vk_to_nbytes[NBYTES_NUM_MAX_KEYS] {
+	/* 0x0 */ 0,
+	/* VK_LBUTTON */ KEY_MOUSE_LEFT,
+	/* VK_RBUTTON */ KEY_MOUSE_RIGHT,
+	/* VK_CANCEL */ 0,
+	/* VK_MBUTTON */ KEY_MOUSE_MIDDLE,
+	/* VK_XBUTTON1 */ KEY_MOUSE_EXT1,
+	/* VK_XBUTTON2 */ KEY_MOUSE_EXT2,
+	/* 0x07 */ 0,
+	/* VK_BACKSPACE */ KEY_BACKSPACE,
+	/* VK_TAB */ KEY_TAB,
+	/* 0x0A-0B */ 0, 0,
+	/* VK_CLEAR */ 0,
+	/* VK_RETURN */ KEY_ENTER,
+	/* 0x0E-0F */ 0, 0,
+	/* VK_SHIFT */ KEY_SHIFT,
+	/* VK_CONTROL */ KEY_CTRL,
+	/* VK_MENU */ KEY_ALT,
+	/* VK_PAUSE */ KEY_PAUSE,
+	/* VK_CAPITAL */ KEY_CAPSLOCK,
+	/* VK_KANA|VK_HANGUEL|VK_HANGUL */ 0,
+	/* 0x16 */ 0,
+	/* VK_JUNJA */ 0,
+	/* VK_FINAL */ 0,
+	/* VK_HANJA|VK_KANJI */ 0,
+	/* 0x1A */ 0,
+	/* VK_ESCAPE */ KEY_ESC,
+	/* VK_CONVERT */ 0,
+	/* VK_NONCONVERT */ 0,
+	/* VK_ACCEPT */ 0,
+	/* VK_MODECHANGE */ 0,
+	/* VK_SPACE */ KEY_SPACE,
+	/* VK_PRIOR */ 0,
+	/* VK_NEXT */ 0,
+	/* VK_END */ 0,
+	/* VK_HOME */ 0,
+	/* VK_LEFT */ KEY_LEFT,
+	/* VK_UP */ KEY_UP,
+	/* VK_RIGHT */ KEY_RIGHT,
+	/* VK_DOWN */ KEY_DOWN,
+	/* VK_SELECT */ 0,
+	/* VK_PRINT */ KEY_PRINT,
+	/* VK_EXECUTE */ 0,
+	/* VK_SNAPSHOT */ 0,
+	/* VK_INSERT */ KEY_INS,
+	/* VK_DELETE */ KEY_DEL,
+	/* VK_HELP */ 0,
+	/* 0x30 - 0x39 | 0-9 keys*/
+	KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
+	/* 0x3A - 0x40 */
+	0, 0, 0, 0, 0, 0, 0,
+	/* 0x41 - 0x5A | A-Z keys*/
+	KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J, KEY_K,
+	KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T, KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
+	/* VK_LWIN */ KEY_LMETA,
+	/* VK_RWIN */ KEY_RMETA,
+	/* VK_APPS */ 0,
+	/* 0x5E */ 0,
+	/* VK_SLEEP */ 0,
+	/* VK_NUMPAD0 */ KEY_NUM_0,
+	/* VK_NUMPAD1 */ KEY_NUM_1,
+	/* VK_NUMPAD2 */ KEY_NUM_2,
+	/* VK_NUMPAD3 */ KEY_NUM_3,
+	/* VK_NUMPAD4 */ KEY_NUM_4,
+	/* VK_NUMPAD5 */ KEY_NUM_5,
+	/* VK_NUMPAD6 */ KEY_NUM_6,
+	/* VK_NUMPAD7 */ KEY_NUM_7,
+	/* VK_NUMPAD8 */ KEY_NUM_8,
+	/* VK_NUMPAD9 */ KEY_NUM_9,
+	/* VK_MULTIPLY */ KEY_NUM_MUL,
+	/* VK_ADD */ KEY_NUM_ADD,
+	/* VK_SEPARATOR */ 0,
+	/* VK_SUBTRACT */ KEY_NUM_SUB,
+	/* VK_DECIMAL */ KEY_NUM_DECIMAL,
+	/* VK_DIVIDE */ KEY_NUM_DIV,
+	/* VK_F1 */ KEY_F1,
+	/* VK_F2 */ KEY_F2,
+	/* VK_F3 */ KEY_F3,
+	/* VK_F4 */ KEY_F4,
+	/* VK_F5 */ KEY_F5,
+	/* VK_F6 */ KEY_F6,
+	/* VK_F7 */ KEY_F7,
+	/* VK_F8 */ KEY_F8,
+	/* VK_F9 */ KEY_F9,
+	/* VK_F10 */ KEY_F10,
+	/* VK_F11 */ KEY_F11,
+	/* VK_F12 */ KEY_F12,
+	/* VK_F13 - VK-F24 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 0x88 - 0x8F */ 0, 0, 0, 0, 0, 0, 0, 0,
+	/* VK_NUMLOCK */ KEY_NUM_LOCK,
+	/* VK_SCROLL */ 0,
+	/* 0x92 - 0x96 */ 0, 0, 0, 0, 0,
+	/* 0x97 - 0x9F */ 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	/* VK_LSHIFT */ 0,
+	/* VK_RSHIFT */ 0,
+	/* VK_LCONTROL */ 0,
+	/* VK_RCONTROL */ 0,
+	/* VK_LMENU */ 0,
+	/* VK_RMENU */ 0,
+	/* VK_BROWSER_BACK */ 0,
+	/* VK_BROWSER_FORWARD */ 0,
+	/* VK_BROWSER_REFRESH */ 0,
+	/* VK_BROWSER_STOP */ 0,
+	/* VK_BROWSER_SEARCH */ 0,
+	/* VK_BROWSER_FAVORITES */ 0,
+	/* VK_BROWSER_HOME */ 0,
+	/* VK_VOLUME_MUTE */ 0,
+	/* VK_VOLUME_DOWN */ 0,
+	/* VK_VOLUME_UP */ 0,
+	/* VK_MEDIA_NEXT_TRACK */ 0,
+	/* VK_MEDIA_PREV_TRACK */ 0,
+	/* VK_MEDIA_STOP */ 0,
+	/* VK_MEDIA_PLAY_PAUSE */ 0,
+	/* VK_LAUNCH_MAIL */ 0,
+	/* VK_LAUNCH_MEDIA_SELECT */ 0,
+	/* VK_LAUNCH_APP1 */ 0,
+	/* VK_LAUNCH_APP2 */ 0,
+	/* VK_LAUNCH_APP2 */ 0,
+	/* 0xB8 - 0xB9 */ 0, 0,
+	/* VK_OEM_1 */ 0,
+	/* VK_OEM_PLUS */ KEY_ADD,
+	/* VK_OEM_COMMA */ KEY_COMMA,
+	/* VK_OEM_MINUS */ KEY_SUB,
+	/* VK_OEM_PERIOD */ KEY_PERIOD,
+	/* VK_OEM_2 */ 0,
+	/* VK_OEM_3 */ 0,
+	/* 0xC1 - 0xD7 */ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	/* 0xD8 - 0xDA */ 0, 0, 0,
+	/* VK_OEM_4 */ 0,
+	/* VK_OEM_5 */ 0,
+	/* VK_OEM_6 */ 0,
+	/* VK_OEM_7 */ 0,
+	/* VK_OEM_8 */ 0,
+	/** ... more to handle if we need them !! **/
+};
+#define WIN32_MAPKEY(vk) &app.keys[win32_vk_to_nbytes[(vk)]]
+
+int
+nbytes__win32_utf8_to_utf16(wchar_t *widestring, int wcslen, const char *multibyte, int mbs_len)
+{
+	int _wcs_len = MultiByteToWideChar(CP_UTF8, 0, multibyte, mbs_len, 0, 0);
+	if (_wcs_len <= wcslen) { MultiByteToWideChar(CP_UTF8, 0, multibyte, mbs_len, widestring, _wcs_len); }
+	return _wcs_len;
+}
+
+int
+nbytes__win32_utf16_to_utf8(char *multibyte, int mbs_len, wchar_t *widestring, int wcs_len)
+{
+	int _mbs_len = WideCharToMultiByte(CP_UTF8, 0, widestring, wcs_len, 0, 0, 0, 0);
+	if (_mbs_len <= mbs_len) { WideCharToMultiByte(CP_UTF8, 0, widestring, wcs_len, multibyte, _mbs_len, 0, 0); }
+	return _mbs_len;
+}
+
 
 typedef struct Win32Window {
 	wchar_t title[NBYTES_WIN32_MAX_TITLE_LEN];
@@ -25,6 +180,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg) {
 		case WM_CREATE: {
+			#if NBYTES_WIN32_USE_RAWINPUT
 			RAWINPUTDEVICE rid[2] = {0};
 			// Keyboard
 			rid[0].usUsagePage = 0x01;
@@ -37,6 +193,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			rid[1].dwFlags     = 0x0;
 			rid[1].hwndTarget  = hwnd;
 			assert(RegisterRawInputDevices(rid, ARRAY_LEN(rid), sizeof(rid[0])));
+			#endif
 		} break;
 		case WM_HOTKEY : {
 			Event event = { EVENT_HOTKEY_PRESSED };
@@ -58,7 +215,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
-			nbytes__update_keystate(&app.keys[VK_LBUTTON], (uMsg == WM_LBUTTONDOWN));
+			nbytes__update_keystate(WIN32_MAPKEY(VK_LBUTTON), (uMsg == WM_LBUTTONDOWN));
 		} break;
 		case WM_MBUTTONUP: case WM_MBUTTONDOWN: {
 			Event event = { (uMsg == WM_MBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
@@ -67,7 +224,7 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
-			nbytes__update_keystate(&app.keys[VK_MBUTTON], (uMsg == WM_MBUTTONDOWN));
+			nbytes__update_keystate(WIN32_MAPKEY(VK_MBUTTON), (uMsg == WM_MBUTTONDOWN));
 		} break;
 		case WM_RBUTTONUP: case WM_RBUTTONDOWN: {
 			Event event = { (uMsg == WM_RBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
@@ -76,8 +233,9 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
-			nbytes__update_keystate(&app.keys[VK_RBUTTON], (uMsg == WM_RBUTTONDOWN));
+			nbytes__update_keystate(WIN32_MAPKEY(VK_RBUTTON), (uMsg == WM_RBUTTONDOWN));
 		} break;
+
 		case WM_XBUTTONUP: case WM_XBUTTONDOWN:	{
 			Event event = { (uMsg == WM_XBUTTONDOWN ? EVENT_MOUSE_DOWN : EVENT_MOUSE_UP) };
 			event.mouse.btn = (wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2);
@@ -85,17 +243,51 @@ nbytes__win32_wndproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			event.mouse.pos = INT2(lParam & 0xffff, lParam >> 16);
 			app.events[app.num_events++] = event;
 
-			nbytes__update_keystate(&app.keys[(wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2)], (uMsg == WM_XBUTTONDOWN));
+			nbytes__update_keystate(WIN32_MAPKEY((wParam == MK_XBUTTON1 ? VK_XBUTTON1 : VK_XBUTTON2)), (uMsg == WM_XBUTTONDOWN));
 		} break;
 		case WM_KEYUP: case WM_KEYDOWN: {
+			/*
+			Maybe throw away all keyboard and mouse messages while we are dragging a window?
+
+			if(win32_dragging) { break; }
+			*/
 			Event event = { (uMsg == WM_KEYDOWN ? EVENT_KEY_DOWN : EVENT_KEY_UP) };
 			event.key.vk = wParam;
 			event.key.repeat = lParam & 0xff;
 			event.key.down = (uMsg == WM_KEYDOWN);
 			app.events[app.num_events++] = event;
 
-			nbytes__update_keystate(&app.keys[wParam], (uMsg == WM_KEYDOWN));
+			//unsigned int scancode = (lParam >> 16) & 0xff;
+			//unsigned int vk_ex = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
+
+			nbytes__update_keystate(WIN32_MAPKEY(wParam), (uMsg == WM_KEYDOWN));
 		} break;
+		#if NBYTES_WIN32_USE_RAWINPUT
+		case WM_INPUT: {
+			RAWINPUT raw = {0};
+			unsigned int size = sizeof(RAWINPUT);
+			if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER))) {
+				switch (raw.header.dwType) {
+					case RIM_TYPEKEYBOARD: {
+						RAWKEYBOARD *raw_kb = &raw.data.keyboard;
+						unsigned int vk = raw_kb->VKey;
+						unsigned int scancode = raw_kb->MakeCode;
+						unsigned int flags = raw_kb->Flags;
+						bool is_e0   = (flags & RI_KEY_E0) != 0;
+						bool is_e1   = (flags & RI_KEY_E1) != 0;
+						bool is_up   = (flags & RI_KEY_BREAK) != 0;
+						bool is_down = !is_up;
+
+						wchar_t name[64] = {0}; char utf8name[64] = {0};
+						unsigned int key = (scancode << 16) | (is_e0 << 24);
+						GetKeyNameText(key, name, 64);
+						nbytes__win32_utf16_to_utf8(utf8name, 64, name, wcslen(name));
+						printf("%s:%X\n", utf8name, scancode);
+					}
+				}
+			}
+		} break;
+		#endif
 		case WM_MOUSEMOVE: {
 			Event event = { EVENT_MOUSE_MOVE };
 			event.mouse.btn = 0;
@@ -154,23 +346,6 @@ nbytes__win32_handle_messages(PVOID lpParameter)
 		SwitchToFiber(win32_main_fiber);
 	}
 }
-
-int
-nbytes__win32_utf8_to_utf16(wchar_t *widestring, int wcslen, const char *multibyte, int mbs_len)
-{
-	int _wcs_len = MultiByteToWideChar(CP_UTF8, 0, multibyte, mbs_len, 0, 0);
-	if (_wcs_len <= wcslen) { MultiByteToWideChar(CP_UTF8, 0, multibyte, mbs_len, widestring, _wcs_len); }
-	return _wcs_len;
-}
-
-int
-nbytes__win32_utf16_to_utf8(char *multibyte, int mbs_len, wchar_t *widestring, int wcs_len)
-{
-	int _mbs_len = WideCharToMultiByte(CP_UTF8, 0, widestring, wcs_len, 0, 0, 0, 0);
-	if (_mbs_len <= mbs_len) { WideCharToMultiByte(CP_UTF8, 0, widestring, wcs_len, multibyte, _mbs_len, 0, 0); }
-	return _mbs_len;
-}
-
 
 bool
 nbytes__win32_prepare_fibers()
@@ -309,14 +484,23 @@ nbytes_update_events()
 	*/
 	SwitchToFiber(win32_msg_fiber);
 
-	if(GetAsyncKeyState(VK_LSHIFT)) { app.keymod |= KEYMOD_LSHIFT; }
-	if(GetAsyncKeyState(VK_RSHIFT)) { app.keymod |= KEYMOD_RSHIFT; }
-	if(GetAsyncKeyState(VK_LCONTROL)) { app.keymod |= KEYMOD_LCTRL; }
-	if(GetAsyncKeyState(VK_RCONTROL)) { app.keymod |= KEYMOD_RCTRL; }
-	if(GetAsyncKeyState(VK_LMENU)) { app.keymod |= KEYMOD_LALT; }
-	if(GetAsyncKeyState(VK_RMENU)) { app.keymod |= KEYMOD_RALT; }
-	if(GetAsyncKeyState(VK_LWIN)) { app.keymod |= KEYMOD_LMETA; }
-	if(GetAsyncKeyState(VK_RWIN)) { app.keymod |= KEYMOD_RMETA; }
+	nbytes__update_keystate(&app.keys[KEY_LSHIFT], GetAsyncKeyState(VK_LSHIFT));
+	nbytes__update_keystate(&app.keys[KEY_RSHIFT], GetAsyncKeyState(VK_RSHIFT));
+	nbytes__update_keystate(&app.keys[KEY_LCTRL], GetAsyncKeyState(VK_LCONTROL));
+	nbytes__update_keystate(&app.keys[KEY_RCTRL], GetAsyncKeyState(VK_RCONTROL));
+	nbytes__update_keystate(&app.keys[KEY_LALT], GetAsyncKeyState(VK_LMENU));
+	nbytes__update_keystate(&app.keys[KEY_RALT], GetAsyncKeyState(VK_RMENU));
+	nbytes__update_keystate(&app.keys[KEY_LMETA], GetAsyncKeyState(VK_LWIN));
+	nbytes__update_keystate(&app.keys[KEY_RMETA], GetAsyncKeyState(VK_RWIN));
+
+	app.keymod |= (app.keys[KEY_LSHIFT].down ? KEYMOD_LSHIFT : 0);
+	app.keymod |= (app.keys[KEY_RSHIFT].down ? KEYMOD_RSHIFT : 0);
+	app.keymod |= (app.keys[KEY_LCTRL].down  ? KEYMOD_LCTRL : 0);
+	app.keymod |= (app.keys[KEY_RCTRL].down  ? KEYMOD_RCTRL : 0);
+	app.keymod |= (app.keys[KEY_LALT].down   ? KEYMOD_LALT : 0);
+	app.keymod |= (app.keys[KEY_RALT].down   ? KEYMOD_RALT : 0);
+	app.keymod |= (app.keys[KEY_LMETA].down  ? KEYMOD_LMETA : 0);
+	app.keymod |= (app.keys[KEY_RMETA].down  ? KEYMOD_RMETA : 0);
 
 	if(win32_dragging) {
 		// win32 hack to reset keystate when the window is currently in dragmode.
@@ -374,15 +558,13 @@ nbytes_init_window()
 
 	app.window.opengl.major = (app.window.opengl.major == 0 ? NBYTES_DEFAULT_OPENGL_MAJOR : app.window.opengl.major);
 	app.window.opengl.minor = (app.window.opengl.minor == 0 ? NBYTES_DEFAULT_OPENGL_MINOR : app.window.opengl.minor);
-	app.window.opengl.vsync = (app.window.opengl.vsync == 0 ? NBYTES_DEFAULT_OPENGL_VSYNC : app.window.opengl.vsync);
-	app.window.opengl.core_profile = (app.window.opengl.core_profile == 0 ? NBYTES_DEFAULT_OPENGL_CORE_PROFILE : app.window.opengl.core_profile);
-	app.window.opengl.debug = (app.window.opengl.debug == 0 ? NBYTES_DEFAULT_OPENGL_DEBUG : app.window.opengl.minor);
+
 
 	WNDCLASSEXW wnd_class   = { sizeof(wnd_class) };
 	wnd_class.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wnd_class.lpfnWndProc   = nbytes__win32_wndproc;
 	wnd_class.lpszClassName = NBYTES_WIN32_WNDCLASS;
-	wnd_class.hCursor       = LoadCursor(0, IDC_CROSS);
+	wnd_class.hCursor       = LoadCursor(0, IDC_ARROW);
 
 	DWORD last_error = 0;
 	ATOM registered 		= RegisterClassExW(&wnd_class);

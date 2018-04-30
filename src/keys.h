@@ -1,0 +1,148 @@
+typedef enum KeyMapping {
+	KEY_ESC = 0x1,
+	KEY_F1,
+	KEY_F2,
+	KEY_F3,
+	KEY_F4,
+	KEY_F5,
+	KEY_F6,
+	KEY_F7,
+	KEY_F8,
+	KEY_F9,
+	KEY_F10,
+	KEY_F11,
+	KEY_F12,
+	KEY_0,
+	KEY_1,
+	KEY_2,
+	KEY_3,
+	KEY_4,
+	KEY_5,
+	KEY_6,
+	KEY_7,
+	KEY_8,
+	KEY_9,
+	KEY_A,
+	KEY_B,
+	KEY_C,
+	KEY_D,
+	KEY_E,
+	KEY_F,
+	KEY_G,
+	KEY_H,
+	KEY_I,
+	KEY_J,
+	KEY_K,
+	KEY_L,
+	KEY_M,
+	KEY_N,
+	KEY_O,
+	KEY_P,
+	KEY_Q,
+	KEY_R,
+	KEY_S,
+	KEY_T,
+	KEY_U,
+	KEY_V,
+	KEY_W,
+	KEY_X,
+	KEY_Y,
+	KEY_Z,
+	KEY_SPACE,
+	KEY_BACKSPACE,
+	KEY_TILDE,
+	KEY_TAB,
+	KEY_CAPSLOCK,
+	KEY_PAUSE,
+	KEY_PRINT,
+	KEY_ENTER,
+	KEY_LSHIFT,
+	KEY_RSHIFT,
+	KEY_SHIFT,
+	KEY_LCTRL,
+	KEY_RCTRL,
+	KEY_CTRL,
+	KEY_LALT,
+	KEY_RALT,
+	KEY_ALT,
+	KEY_LMETA,
+	KEY_RMETA,
+	KEY_META,
+	KEY_SEMICOLON,
+	KEY_COLON,
+	KEY_COMMA,
+	KEY_PERIOD,
+	KEY_SLASH,
+	KEY_BACKSLASH,
+	KEY_OPENBRACKET,
+	KEY_CLOSEBRACKET,
+	KEY_INS,
+	KEY_DEL,
+	KEY_SUB,
+	KEY_ADD,
+	KEY_UP,
+	KEY_DOWN,
+	KEY_LEFT,
+	KEY_RIGHT,
+	KEY_NUM_0,
+	KEY_NUM_1,
+	KEY_NUM_2,
+	KEY_NUM_3,
+	KEY_NUM_4,
+	KEY_NUM_5,
+	KEY_NUM_6,
+	KEY_NUM_7,
+	KEY_NUM_8,
+	KEY_NUM_9,
+	KEY_NUM_ADD,
+	KEY_NUM_SUB,
+	KEY_NUM_MUL,
+	KEY_NUM_DIV,
+	KEY_NUM_ENTER,
+	KEY_NUM_DECIMAL,
+	KEY_NUM_LOCK,
+	KEY_MOUSE_LEFT,
+	KEY_MOUSE_RIGHT,
+	KEY_MOUSE_MIDDLE,
+	KEY_MOUSE_EXT1,
+	KEY_MOUSE_EXT2,
+} KeyMapping;
+
+
+enum {
+	KEYMOD_NONE		= 0x0,
+	KEYMOD_LSHIFT 	= 0x1,
+	KEYMOD_RSHIFT 	= 0x2,
+	KEYMOD_SHIFT 	= KEYMOD_LSHIFT | KEYMOD_RSHIFT,
+	KEYMOD_LCTRL	= 0x4,
+	KEYMOD_RCTRL	= 0x8,
+	KEYMOD_CTRL 	= KEYMOD_LCTRL | KEYMOD_RCTRL,
+	KEYMOD_LALT		= 0x10,
+	KEYMOD_RALT		= 0x20,
+	KEYMOD_ALT 		= KEYMOD_LALT | KEYMOD_RALT,
+	KEYMOD_LMETA	= 0x40,
+	KEYMOD_RMETA	= 0x80,
+	KEYMOD_META 	= KEYMOD_LMETA | KEYMOD_RMETA,
+};
+
+typedef struct Keystate {
+	bool down;
+	bool pressed;
+	bool released;
+} Keystate;
+
+__forceinline void
+nbytes__reset_keystate(Keystate *key)
+{
+	key->pressed = 0;
+	key->released = 0;
+}
+
+__forceinline void
+nbytes__update_keystate(Keystate *key, bool is_down)
+{
+	bool was_down = key->down;
+	key->down = is_down;
+	key->pressed = !was_down && is_down;
+	key->released = !is_down && was_down;
+}

@@ -18,6 +18,8 @@
 #include "shared.c"
 #include "math.c"
 
+#include "keys.h"
+
 #if defined OS_WINDOWS
 	#pragma comment(lib, "user32.lib")
 	#pragma comment(lib, "gdi32.lib")
@@ -28,49 +30,13 @@
 	#define VC_EXTRA_LEAN
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
+	#include <mmsystem.h>
 #elif defined OS_LINUX
 	#error Implementation missing! @TODO: OS_LINUX
 #else
 	#error Fatal Error: This platform is not supported or not identified as a supported one!
 #endif
 
-enum {
-	KEYMOD_NONE		= 0x0,
-	KEYMOD_LSHIFT 	= 0x1,
-	KEYMOD_RSHIFT 	= 0x2,
-	KEYMOD_SHIFT 	= KEYMOD_LSHIFT | KEYMOD_RSHIFT,
-	KEYMOD_LCTRL	= 0x4,
-	KEYMOD_RCTRL	= 0x8,
-	KEYMOD_CTRL 	= KEYMOD_LCTRL | KEYMOD_RCTRL,
-	KEYMOD_LALT		= 0x10,
-	KEYMOD_RALT		= 0x20,
-	KEYMOD_ALT 		= KEYMOD_LALT | KEYMOD_RALT,
-	KEYMOD_LMETA	= 0x40,
-	KEYMOD_RMETA	= 0x80,
-	KEYMOD_META 	= KEYMOD_LMETA | KEYMOD_RMETA,
-};
-
-typedef struct Keystate {
-	bool down;
-	bool pressed;
-	bool released;
-} Keystate;
-
-__forceinline void
-nbytes__reset_keystate(Keystate *key)
-{
-	key->pressed = 0;
-	key->released = 0;
-}
-
-__forceinline void
-nbytes__update_keystate(Keystate *key, bool is_down)
-{
-	bool was_down = key->down;
-	key->down = is_down;
-	key->pressed = !was_down && is_down;
-	key->released = !is_down && was_down;
-}
 
 typedef enum EventType {
 	EVENT_NONE,
@@ -262,19 +228,34 @@ void
 nbytes_check_prefined_hotkeys()
 {
 	// exit application
-	if(app.keys[VK_ESCAPE].pressed) {
+	if(app.keys[KEY_ESC].pressed) {
 		app.quit = true;
 	}
 
 	// toggle vsync
-	if(app.keys['V'].pressed) {
+	if(app.keys[KEY_V].pressed) {
 		app.window.opengl.vsync = !app.window.opengl.vsync;
 	}
 
 	// toggle borderless fullscreen
-	if(app.keys['F'].pressed) {
+	if(app.keys[KEY_F].pressed) {
 		app.window.borderless_fullscreen = !app.window.borderless_fullscreen;
 	}
 }
 
+void
+nbytes_limit_framerate(uint64_t next_tick_us)
+{
+	if(!app.window.opengl.vsync) {
+		int64_t ms_sleep = (int64_t)(next_tick_us - app.time.usecs) / 1000;
+		if (ms_sleep > 0) {
+			#if OS_WINDOWS
+			// TODO: @Cleanup
+			timeBeginPeriod(1);
+			Sleep(ms_sleep);
+			timeEndPeriod(1);
+			#endif
+		}
+	}
+}
 #endif
