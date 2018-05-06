@@ -1,6 +1,8 @@
 #ifndef INCLUDE_GUARD_NBYTES_H
 #define INCLUDE_GUARD_NBYTES_H
 
+#define NBYTES_DEBUGGING 1
+
 // C-Standard library stuff
 #define _CRT_SECURE_NO_WARNINGS
 #include <math.h>
@@ -18,25 +20,19 @@
 #include "shared.c"
 #include "math.c"
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb/stb_rect_pack.h"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
+#include "fonts.c"
+
 #include "keys.h"
-
-#if defined OS_WINDOWS
-	#pragma comment(lib, "user32.lib")
-	#pragma comment(lib, "gdi32.lib")
-	#pragma comment(lib, "opengl32.lib")
-	#pragma comment(lib, "winmm.lib")
-
-	#define UNICODE
-	#define VC_EXTRA_LEAN
-	#define WIN32_LEAN_AND_MEAN
-	#include <windows.h>
-	#include <mmsystem.h>
-#elif defined OS_LINUX
-	#error Implementation missing! @TODO: OS_LINUX
-#else
-	#error Fatal Error: This platform is not supported or not identified as a supported one!
-#endif
-
+#include "resman.h"
 
 typedef enum EventType {
 	EVENT_NONE,
@@ -46,8 +42,10 @@ typedef enum EventType {
 	EVENT_MOUSE_UP,
 	EVENT_MOUSE_MOVE,
 	EVENT_HOTKEY_PRESSED,
+	EVENT_FILE_ADDED,
+	EVENT_FILE_REMOVED,
+	EVENT_FILE_CONTENT_CHANGED,
 } EventType;
-
 
 typedef struct Event {
 	EventType type;
@@ -66,6 +64,9 @@ typedef struct Event {
 			int id;
 			int keymod;
 		} hotkey;
+		struct {
+			const char *name;
+		} file;
 	};
 } Event;
 
@@ -148,9 +149,6 @@ typedef struct Window {
 
 #define NBYTES_DEFAULT_OPENGL_MAJOR 		3
 #define NBYTES_DEFAULT_OPENGL_MINOR 		3
-#define NBYTES_DEFAULT_OPENGL_DEBUG 		1
-#define NBYTES_DEFAULT_OPENGL_CORE_PROFILE	0
-#define NBYTES_DEFAULT_OPENGL_VSYNC			true
 
 #define NBYTES_DEFAULT_WINDOW_POS 			0x80000000
 #define NBYTES_DEFAULT_WINDOW_WIDTH 		800
@@ -168,36 +166,27 @@ typedef struct App {
 
 	int keymod;
 	Keystate keys[NBYTES_NUM_MAX_KEYS];
-	/**
-		@TODO: virtual key map!
-		Create own vkeys and map them to the platform specific ones
-		Right now i just use the VK_KEYS from windows directly!
-	**/
+
 	Time time;
 	Mouse mouse;
 	Display display;
 	Window window;
 
+	ResourceManager rsm;
+
 	const char *error;
 } App;
 extern App app;
 
-#define STB_RECT_PACK_IMPLEMENTATION
-#include "stb/stb_rect_pack.h"
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb/stb_image_write.h"
-
-#include "fonts.c"
-
-#if OS_WINDOWS
-	#define GLLOADER_USE_WGL
-	#include "opengl_loader.c"
+#if defined OS_WINDOWS
+	#include "win32_platform.c"
 	#include "win32_app.c"
+	#include "win32_resman.c"
+#elif defined OS_LINUX
+	#error Implementation missing! @TODO: OS_LINUX
+#else
+	#error Fatal Error: This platform is not supported or not identified as a supported one!
 #endif
-
-#include "opengl_retro.c"
 
 bool
 nbytes_update()
@@ -207,6 +196,7 @@ nbytes_update()
 		nbytes_update_events();
 		return false;
 	} else {
+		nbytes_update_rsm();
 		nbytes_update_events();
 		nbytes_update_window();
 		nbytes_update_time();
@@ -218,9 +208,15 @@ nbytes_update()
 bool
 nbytes_init()
 {
+	#if NBYTES_DEBUGGING
+	nbytes_init_debugging();
+	#endif
+
 	if(!nbytes_init_window()) { return false; }
 	if(!nbytes_init_display()) { return false; };
 	if(!nbytes_init_time()) { return false; };
+
+	if(!nbytes_init_rsm()) { return false; }
 	return nbytes_update();
 }
 
