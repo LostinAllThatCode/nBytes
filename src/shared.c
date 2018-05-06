@@ -38,6 +38,7 @@
 #define IS_POW2(x) 				(((x) != 0) && ((x) & ((x)-1)) == 0)
 #define MIN(a, b) 				(((a) < (b) ? (a) : (b)))
 #define MAX(a, b) 				(((a) < (b) ? (b) : (a)))
+#define CLAMP(v, min, max) 		(MAX(MIN((v), (max)), (min)))
 #define SIGN(a) 				((a) > 0) ? 1 : (((a) < 0) ? -1 : 0)
 #define ARRAY_LEN(a) 			(sizeof(a)/sizeof(a[0]))
 
@@ -316,6 +317,7 @@ typedef struct Map {
 	size_t 	cap;
 } Map;
 
+
 void map_grow(Map *map, size_t new_cap);
 
 void *map_get(Map *map, void *key)
@@ -381,6 +383,15 @@ void map_grow(Map *map, size_t new_cap)
 	free(map->keys);
 	free(map->vals);
 	*map = new_map;
+}
+
+void
+map_free(Map *map)
+{
+	assert(map->keys);
+	assert(map->vals);
+	xfree(map->keys);
+	xfree(map->vals);
 }
 
 void map_test(void)
@@ -539,4 +550,41 @@ void *deserialize(uint8_t *data, size_t len)
 	}
 
 	return head;
+}
+
+
+// utils
+const char *
+str_dup(const char *string, size_t len)
+{
+	char *str = (char *) xmalloc(len + 1);
+	assert(str);
+	memcpy(str, string, len);
+	str[len] = 0;
+	return str;
+}
+
+void
+filename_format(char *str, size_t len)
+{
+	for(int i = 0; i < len; i++) {
+		if(str[i] == '\\') {
+			str[i] = '/';
+		}
+	}
+}
+
+const char *
+utf8__find_extension(const char *filename, size_t len)
+{
+	for(int i = len; i >= 0; i--) {
+		if(filename[i] == '.') { return filename + i; }
+	}
+	return 0;
+}
+
+const char *
+utf8_find_extension(const char *filename)
+{
+	return utf8__find_extension(filename, strlen(filename));
 }
