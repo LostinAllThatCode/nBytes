@@ -4,6 +4,11 @@ Oldschool opengl helpers to draw simple stuff
 Only works with old opengl versions < 3.0 or compatibility profiles
 
 **/
+struct RetroGLState {
+	int a;
+};
+
+int rgl__render_mode;
 
 typedef enum RetroGLAnchor {
 	RGL_CENTER,
@@ -38,7 +43,62 @@ rgl_create_linear_texture(int input_format, int width, int height, uint8_t *data
 }
 
 void
-rgl_draw_colored_rect2d(RetroGLAnchor origin, v2 position, v4 color, float width, float height)
+rgl_draw_point(v2 P, v4 color, float radius_px)
+{
+	glPointSize(radius_px);
+	glColor4f(color.r, color.g, color.b, color.a);
+	glBegin(GL_POINTS);
+	glVertex2f(P.x, P.y);
+	glEnd();
+	glPointSize(1);
+}
+
+void
+rgl_draw_line2d(v2 p0, v2 p1, v4 color, float thickness)
+{
+	glLineWidth(thickness);
+	glColor4f(color.r, color.g, color.b, color.a);
+	glBegin(GL_LINES);
+	glVertex2f(p0.x, p0.y);
+	glVertex2f(p1.x, p1.y);
+	glEnd();
+	glLineWidth(1);
+}
+
+void
+rgl_draw_rect2d(RetroGLAnchor origin, v2 position, v4 color, float width, float height)
+{
+	v2 p0, p1, p2, p3;
+	switch(origin) {
+		case RGL_TOPLEFT: {
+			p0 = position;
+			p1 = vec2(position.x, position.y + height);
+			p2 = vec2(position.x + width, position.y + height);
+			p3 = vec2(position.x + width, position.y);
+		} break;
+		case RGL_CENTER: {
+			float hw = width / 2.f;
+			float hh = height / 2.f;
+			p0 = vec2(position.x - hw, position.y - hh);
+			p1 = vec2(position.x - hw, position.y + hh);
+			p2 = vec2(position.x + hw, position.y + hh);
+			p3 = vec2(position.x + hw, position.y - hh);
+		}
+	}
+
+	glBegin(GL_LINE_LOOP);
+	{
+		glColor4f(color.r, color.g, color.b, color.a);
+		glVertex2f(p0.x, p0.y);
+		glVertex2f(p1.x, p1.y);
+		glVertex2f(p2.x, p2.y);
+		glVertex2f(p3.x, p3.y);
+	}
+	glEnd();
+}
+
+void
+rgl_draw_filled_rect2d(RetroGLAnchor origin, v2 position, v4 color, float width, float height)
 {
 	v2 p0, p1, p2, p3;
 	switch(origin) {
@@ -70,13 +130,48 @@ rgl_draw_colored_rect2d(RetroGLAnchor origin, v2 position, v4 color, float width
 }
 
 void
+rgl_draw_textured_rect2d(int texture, RetroGLAnchor origin, v2 position, v4 color, float width, float height)
+{
+	v2 p0, p1, p2, p3;
+	switch(origin) {
+		case RGL_TOPLEFT: {
+			p0 = position;
+			p1 = vec2(position.x, position.y + height);
+			p2 = vec2(position.x + width, position.y + height);
+			p3 = vec2(position.x + width, position.y);
+		} break;
+		case RGL_CENTER: {
+			float hw = width / 2.f;
+			float hh = height / 2.f;
+			p0 = vec2(position.x - hw, position.y - hh);
+			p1 = vec2(position.x - hw, position.y + hh);
+			p2 = vec2(position.x + hw, position.y + hh);
+			p3 = vec2(position.x + hw, position.y - hh);
+		}
+	}
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glBegin(GL_QUADS);
+	{
+		glColor4f(1, 1, 1, 1);
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex2f(p0.x, p0.y);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex2f(p1.x, p1.y);
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex2f(p2.x, p2.y);
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex2f(p3.x, p3.y);
+	}
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);
+}
+
+void
 rgl_draw_filled_circle(v2 position, v4 color, float radius)
 {
 	int subdiv = MAX(radius * 4, 64);
-	if(radius <= 1.0f) {
-		rgl_draw_colored_rect2d(RGL_CENTER, position, color, radius * 2, radius * 2);
-		return;
-	}
 	//glBegin(GL_LINE_LOOP);
 	glBegin(GL_TRIANGLE_FAN);
 	glColor4f(color.r, color.g, color.b, color.a);
@@ -95,7 +190,7 @@ rgl_draw_circle(v2 position, v4 color, float radius)
 {
 	int subdiv = MAX(radius * 4, 64);
 	if(radius <= 1.0f) {
-		rgl_draw_colored_rect2d(RGL_CENTER, position, color, radius * 2, radius * 2);
+		rgl_draw_rect2d(RGL_CENTER, position, color, radius * 2, radius * 2);
 		return;
 	}
 
@@ -111,6 +206,35 @@ rgl_draw_circle(v2 position, v4 color, float radius)
 	glEnd();
 }
 
+
+void
+rgl_begin_text2d()
+{
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glBlendFunc(GL_SRC_COLOR, GL_ZERO);
+
+
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, app.window.size.width, app.window.size.height, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+}
+
+void
+rgl_end_text2d()
+{
+	glDisable(GL_TEXTURE_2D);
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+}
 
 void
 rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align, v2 position, v4 color, const char *fmt, ...)
@@ -135,9 +259,7 @@ rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align,
 		} break;
 	}
 
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glBindTexture(GL_TEXTURE_2D, font_tex);
 	glBegin(GL_TRIANGLES);
 	float x 	= position.x;
@@ -190,5 +312,5 @@ rgl_draw_text2d(BakedFont *font, int font_tex, int size, RetroGLTextAlign align,
 		i += adv_csr;
 	}
 	glEnd();
-	glDisable(GL_TEXTURE_2D);
+
 }
