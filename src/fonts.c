@@ -1,3 +1,4 @@
+// make sure to add a away to cleanly free all allocated data for a bakedfont. -> glyphdata per range is currently malloced but never freed!
 // not even close to final.. still figuring out what the best way is to store glyph data!!
 
 /**
