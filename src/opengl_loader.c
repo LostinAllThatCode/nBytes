@@ -42,7 +42,11 @@
 	#define GL_RENDERBUFFER                   0x8D41
 	#define GL_SAMPLE_ALPHA_TO_COVERAGE       0x809E
 
+	#define GL_RG                             0x8227
 	#define GL_BGRA                           0x80E1
+
+	#define GL_R8                             0x8229
+	#define GL_RG8                            0x822B
 
 	typedef char GLchar;
 	typedef ptrdiff_t GLintptr;
@@ -125,26 +129,46 @@ typedef void glGenVertexArraysProc(GLsizei n, GLuint *arrays); glGenVertexArrays
 typedef void glDisableVertexAttribArrayProc(GLuint index); glDisableVertexAttribArrayProc *glDisableVertexAttribArray;
 typedef void glEnableVertexAttribArrayProc(GLuint index); glEnableVertexAttribArrayProc *glEnableVertexAttribArray;
 
+
+int
+__find_next_token(char *string, char token)
+{
+	if(!string) { return 0; }
+	int idx = 0;
+	for(;; idx++) {
+		if(string[idx] == 0 || string[idx] == token) { break; }
+	}
+	return idx;
+}
+
 void
 opengl_loader__fetch_extensions()
 {
 	#ifdef GLLOADER_USE_WGL
 	if (wglGetExtensionsStringARB) {
-		// Grab the win32 WGL extensions and add the to the hashmap!
+		// Grab the win32 WGL extensions and add them to the hashmap!
 		char *ext = wglGetExtensionsStringARB(wglGetCurrentDC());
-		char *cursor = strtok((char *) ext, " ");
-		for(; cursor != 0;) {
-			char *next_space = strtok(0, " ");
-			if(next_space) {
-				uint64_t hash = str_hash(cursor, (next_space - cursor) - 1);
-				map_put(&opengl_loader__supported_extensions, (void *) hash, (void *) cursor);
+		if(ext) {
+			int offset_pos = 0;
+			for(;;) {
+				int pos = __find_next_token(ext + offset_pos, ' ');
+				if(pos != 0) {
+					int len = pos;
+					char *bext = ext + offset_pos;
+					uint64_t hash = str_hash(bext, len);
+					map_put(&opengl_loader__supported_extensions, (void *) hash, (void *) bext);
+					offset_pos += ++pos;
+				} else {
+					break;
+				}
 			}
-			cursor = next_space;
+		} else {
+			warn("wglGetExtensionsStringARB returned NULL pointer!");
 		}
 	}
 	#endif
 
-	if(glGetStringi) {
+	if(!glGetStringi) {
 		// OpenGL 3+
 		int num_ext;
 		glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
@@ -158,16 +182,19 @@ opengl_loader__fetch_extensions()
 	} else {
 		// Legacy opengl
 		const GLubyte *ext = glGetString(GL_EXTENSIONS);
-		char *cursor = strtok((char *) ext, " ");
-		for(; cursor != 0;) {
-			char *next_space = strtok(0, " ");
-			if(next_space) {
-				uint64_t hash = str_hash(cursor, (next_space - cursor) - 1);
-				map_put(&opengl_loader__supported_extensions, (void *) hash, (void *) cursor);
+		int offset_pos = 0;
+		for(;;) {
+			int pos = __find_next_token((char *) ext + offset_pos, ' ');
+			if(pos != 0) {
+				int len = pos;
+				char *bext = (char *) ext + offset_pos;
+				uint64_t hash = str_hash(bext, len);
+				map_put(&opengl_loader__supported_extensions, (void *) hash, (void *) bext);
+				offset_pos += ++pos;
+			} else {
+				break;
 			}
-			cursor = next_space;
 		}
-		int a  = 2;
 	}
 
 }
